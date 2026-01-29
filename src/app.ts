@@ -8,9 +8,9 @@ import { RequestError } from "@octokit/request-error";
 dotenv.config();
 
 const path = "/api/webhook";
+const port = process.env.PORT || 3000;
 
 const server = express();
-const port = process.env.PORT || 3000;
 
 const appId = process.env.APP_ID!;
 const webhookSecret = process.env.WEBHOOK_SECRET!;
@@ -74,6 +74,9 @@ app.webhooks.onError((error) => {
   }
 });
 
+const localWebhookUrl = `http://localhost:${port}${path}`;
+
 server.listen(port, () => {
-  console.log(`Server running on http://localhost:${port}`);
+  console.log(`Server running on port ${port}`);
+  console.log(`Server is listening for events at: ${localWebhookUrl}`);
 });

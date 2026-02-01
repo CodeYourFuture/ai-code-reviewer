@@ -4,10 +4,11 @@
   "type": "module",
   "main": "index.js",
   "scripts": {
-    "server": "npx tsx watch src/app.ts",
+    "dev": "npx tsx watch src/app.ts",
     "webhook": "source .env && npx smee -u $WEBHOOK_PROXY_URL -t http://localhost:3000/api/webhook",
     "typeCheck": "tsc --pretty --noEmit",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "build": "tsc",
+    "start": "node --watch dist/app.js"
   },
   "repository": {
     "type": "git",
@@ -22,8 +23,8 @@
     "@octokit/webhooks": "^14.2.0",
     "@octokit/webhooks-types": "^7.6.1",
     "dotenv": "^17.2.3",
-    "octokit": "^5.0.5",
-    "express": "^5.2.1"
+    "express": "^5.2.1",
+    "octokit": "^5.0.5"
   },
   "devDependencies": {
     "@types/express": "^5.0.6",

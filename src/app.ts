@@ -6,6 +6,7 @@ import { App, Octokit } from "octokit";
 import { env, privateKey } from "./config/env.ts";
 import { runAiReview } from "./networks/ai_api_request.ts";
 import { getPRFiles, logPRFiles } from "./networks/github.ts";
+import { postInlineComments } from "./networks/postInlineComment.ts";
 import { postPRComment } from "./networks/postPrComment.ts";
 
 const app = new App({
@@ -39,19 +40,24 @@ async function handlePullRequestOpened(
     const owner = payload.repository.owner.login;
     const repo = payload.repository.name;
     const pullNumber = payload.pull_request.number;
+    const commitId = payload.pull_request.head.sha;
 
     postPRComment({ owner, repo, pullNumber, body: messageForNewPRs, octokit });
     const files = await getPRFiles(owner, repo, pullNumber, octokit);
     await logPRFiles(owner, repo, pullNumber, files);
-    const aiReview = await runAiReview(owner, repo, pullNumber, files);
+    const aiReview = await runAiReview(files);
 
-    await postPRComment({
-      owner,
-      repo,
-      pullNumber,
-      body: `## 🤖 AI PR Review\n\n${aiReview}`,
-      octokit,
-    });
+    // await postPRComment({
+    //   owner,
+    //   repo,
+    //   pullNumber,
+    //   body: `## 🤖 AI PR Review\n\n${aiReview}`,
+    //   octokit,
+    // });
+
+    for (const point of aiReview.feedback_points) {
+      postInlineComments(owner, repo, pullNumber, octokit, point, commitId);
+    }
   } catch (error) {
     if (error instanceof RequestError) {
       if (error.response) {

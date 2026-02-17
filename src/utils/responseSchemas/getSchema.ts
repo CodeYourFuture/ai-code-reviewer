@@ -24,26 +24,17 @@ export const getSchema = {
             description: {
               type: "string",
               description:
-                "A detailed explanation of the feedback given. All line numbers MUST be placed inside line_ranges and NEVER written inside the description text.",
+                "A detailed explanation of the feedback given. All line numbers MUST be placed inside line_numbers and NEVER written inside the description text.",
             },
             questions: {
               type: "string",
               description:
                 "Acting as a coach, use questioning to help the trainee understand the feedback.",
             },
-            line_ranges: {
-              type: "array",
+            line_numbers: {
+              type: "string",
               description:
-                "REQUIRED. Exact line number ranges where the issue occurs. ",
-              items: {
-                type: "object",
-                properties: {
-                  start: { type: "integer" },
-                  end: { type: "integer" },
-                },
-                required: ["start", "end"],
-                additionalProperties: false,
-              },
+                "The line numbers in the code where the feedback applies. Denoted as a comma separated list, with individual numbers or ranges of numbers (e.g. 3,4,10-15)",
             },
             severity: {
               type: "integer",
@@ -55,7 +46,7 @@ export const getSchema = {
             "file_name",
             "description",
             "questions",
-            "line_ranges",
+            "line_numbers",
             "summary",
             "severity",
           ],

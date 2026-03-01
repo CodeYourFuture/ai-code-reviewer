@@ -28,8 +28,7 @@ export const getSchema = {
             },
             questions: {
               type: "string",
-              description:
-                "Acting as a coach, use questioning to help the trainee understand the feedback.",
+              description: `here Use a "teaching" style not a "telling" style (e.g. "I've noticed you have some duplicated code here - if you had to change one copy of it you'd need to remember to change the other - how could you avoid that?" rather than "You should extract a function here")`,
             },
             line_numbers: {
               type: "string",

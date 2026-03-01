@@ -7,3 +7,7 @@ test("create start line and line when two numbers", () => {
 test("return line when one number passed", () => {
   expect(formReviewParams([46])).toEqual({ line: 46 });
 });
+
+test.todo("Function sends post request with the right params");
+test.todo("Function throws error when passing incorrect params");
+test.todo("throws error if github return error");

@@ -2,7 +2,7 @@ import { RequestError } from "@octokit/request-error";
 import type { EmitterWebhookEvent } from "@octokit/webhooks";
 import { Octokit } from "octokit";
 import { runAiReview } from "./networks/ai_api_request.ts";
-import { getPRFiles } from "./networks/github.ts";
+import { getPRFiles, logPRFiles } from "./networks/github.ts";
 import { postInlineComments } from "./networks/postInlineComment.ts";
 import { postPRComment } from "./networks/postPrComment.ts";
 
@@ -15,7 +15,7 @@ export async function handleLabeled(
   const { payload, octokit } = event;
   const label = payload.label?.name;
   console.log(
-    `Received a pull request event for #${payload.pull_request.number}`,
+    `Received a "labeled" event for PR #${payload.pull_request.number}`,
   );
   if (label === "needs review") {
     try {
@@ -32,7 +32,7 @@ export async function handleLabeled(
         octokit,
       });
       const files = await getPRFiles(owner, repo, pullNumber, octokit);
-      // await logPRFiles(owner, repo, pullNumber, files);
+      await logPRFiles(owner, repo, pullNumber, files);
       const aiReview = await runAiReview(files);
 
       for (const point of aiReview.feedback_points) {

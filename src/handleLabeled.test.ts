@@ -31,6 +31,7 @@ vi.mock("./networks/github.ts", () => ({
   getPRFiles: vi
     .fn()
     .mockResolvedValue([{ filename: "file1.js" }, { filename: "file2.ts" }]),
+  logPRFiles: vi.fn(),
 }));
 vi.mock("./networks/ai_api_request.ts", () => ({
   runAiReview: vi.fn().mockResolvedValue({

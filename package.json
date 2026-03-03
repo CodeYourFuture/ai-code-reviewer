@@ -4,11 +4,12 @@
   "type": "module",
   "main": "index.js",
   "scripts": {
-    "dev": "npx tsx watch src/app.ts",
+    "dev": "npx tsx watch src/server.ts",
     "webhook": "source .env && npx smee -u $WEBHOOK_PROXY_URL -t http://localhost:3000/api/webhook",
     "typeCheck": "tsc --pretty --noEmit",
     "build": "tsc",
-    "start": "node --watch dist/app.js"
+    "start": "node --watch dist/server.js",
+    "test": "vitest"
   },
   "repository": {
     "type": "git",
@@ -22,15 +23,18 @@
   "dependencies": {
     "@octokit/webhooks": "^14.2.0",
     "@octokit/webhooks-types": "^7.6.1",
+    "@openrouter/sdk": "^0.5.1",
     "dotenv": "^17.2.3",
     "express": "^5.2.1",
-    "octokit": "^5.0.5"
+    "octokit": "^5.0.5",
+    "zod": "^4.3.6"
   },
   "devDependencies": {
     "@types/express": "^5.0.6",
     "@types/node": "^25.0.10",
     "smee-client": "^5.0.0",
     "ts-node": "^10.9.2",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "vitest": "^4.0.18"
   }
 }

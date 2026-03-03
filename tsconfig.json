@@ -2,8 +2,8 @@
   "compilerOptions": {
 
     "target": "ES2022",
-    "module": "NodeNext",
-    "moduleResolution": "NodeNext",
+    "lib": ["ES2022"],
+    "module": "es2022",
 
     "rootDir": "src",
     "outDir": "dist",
@@ -11,8 +11,14 @@
     "strict": true,
     "strictNullChecks": true,
 
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions":true,
+    "noEmit":true,
+
     "skipLibCheck": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
   },
   "include": ["src"],
-  "exclude": ["node_modules"]
+  "exclude": ["node_modules", "dist", "experiments"]
 }

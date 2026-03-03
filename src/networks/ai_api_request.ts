@@ -8,8 +8,8 @@ import { getSchema } from "../utils/responseSchemas/getSchema";
 const openRouter = new OpenRouter({
   apiKey: env.OPENROUTER_API_KEY,
 });
-// const FreeModel = "arcee-ai/trinity-large-preview:free";
-const MODEL = "gpt-4.1-mini";
+const FreeModel = "arcee-ai/trinity-large-preview:free";
+// const MODEL = "gpt-4.1-mini";
 
 const basePrompt: string = `You are a senior software engineer mentor, who is trained to give feedback on code quality, doing a pull request review.
 Use a teaching and mentoring tone, not a telling or commanding one.
@@ -32,7 +32,7 @@ const topics: string[] = [
 
 export async function askOpenRouter(prompt: string): Promise<FeedbackResponse> {
   const completion = await openRouter.chat.send({
-    model: MODEL,
+    model: FreeModel,
     stream: false,
     messages: [
       {
@@ -76,7 +76,6 @@ export async function runAiReview(files: PRFile[]) {
   console.log("\n🤖 Sending PR diff to OpenRouter for review...\n");
 
   const review = await askOpenRouter(prompt);
-
   console.log("\n================ PR REVIEW ================\n");
   console.log(review);
   console.log("\n==========================================\n");

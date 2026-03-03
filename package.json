@@ -4,11 +4,11 @@
   "type": "module",
   "main": "index.js",
   "scripts": {
-    "dev": "npx tsx watch src/app.ts",
+    "dev": "npx tsx watch src/server.ts",
     "webhook": "source .env && npx smee -u $WEBHOOK_PROXY_URL -t http://localhost:3000/api/webhook",
     "typeCheck": "tsc --pretty --noEmit",
     "build": "tsc",
-    "start": "node --watch dist/app.js",
+    "start": "node --watch dist/server.js",
     "test": "vitest"
   },
   "repository": {

@@ -8,7 +8,7 @@ import { getSchema } from "../utils/responseSchemas/getSchema";
 const openRouter = new OpenRouter({
   apiKey: env.OPENROUTER_API_KEY,
 });
-const FreeModel = "arcee-ai/trinity-large-preview:free";
+// const FreeModel = "arcee-ai/trinity-large-preview:free";
 const MODEL = "gpt-4.1-mini";
 
 const basePrompt: string = `You are a senior software engineer mentor, who is trained to give feedback on code quality, doing a pull request review.

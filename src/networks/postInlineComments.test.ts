@@ -1,5 +1,5 @@
 import { expect, test } from "vitest";
-import { formReviewParams } from "./postInlineComment";
+import { formReviewParams } from "./postInlineComment.js";
 
 test("create start line and line when two numbers", () => {
   expect(formReviewParams([46, 49])).toEqual({ start_line: 46, line: 49 });

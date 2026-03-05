@@ -1,6 +1,6 @@
 import { App } from "octokit";
-import { env, privateKey } from "./config/env";
-import { handleLabeled } from "./handleLabeled";
+import { env, privateKey } from "./config/env.js";
+import { handleLabeled } from "./handleLabeled.js";
 
 export const githubApp = new App({
   appId: env.APP_ID,

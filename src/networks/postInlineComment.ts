@@ -1,7 +1,7 @@
 import { Octokit } from "octokit";
-import { FeedbackPoint } from "../types/aiResponse";
-import { CreateReviewCommentParams } from "../types/githubTypes";
-import { extractReviewParams } from "../utils/extractReviewParams";
+import { FeedbackPoint } from "../types/aiResponse.js";
+import { CreateReviewCommentParams } from "../types/githubTypes.js";
+import { extractReviewParams } from "../utils/extractReviewParams.js";
 
 export async function postInlineComments(
   owner: string,

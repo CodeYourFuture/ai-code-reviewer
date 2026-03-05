@@ -1,6 +1,6 @@
 import fs from "node:fs";
 import { Octokit } from "octokit";
-import { getPRFiles, logPRFiles } from "../networks/github";
+import { getPRFiles, logPRFiles } from "../networks/github.js";
 
 export function parsePRUrl(url: string) {
   const match = url.match(/github\.com\/([^/]+)\/([^/]+)\/pull\/(\d+)/);

@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { getPRFiles } from "../networks/github";
+import { getPRFiles } from "../networks/github.js";
 
 describe("getPRFiles", () => {
   it("calls octokit and returns PR files", async () => {

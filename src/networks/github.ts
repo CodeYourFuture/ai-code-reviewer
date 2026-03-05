@@ -1,5 +1,5 @@
 import { Octokit } from "octokit";
-import type { PRFile } from "../types/githubTypes";
+import type { PRFile } from "../types/githubTypes.js";
 
 /**
  * Function to get code from the PR

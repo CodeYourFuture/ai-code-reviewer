@@ -3,17 +3,14 @@
 
     "target": "ES2022",
     "lib": ["ES2022"],
-    "module": "es2022",
+    "module": "nodenext",
 
     "rootDir": "src",
     "outDir": "dist",
 
     "strict": true,
     "strictNullChecks": true,
-
-    "moduleResolution": "bundler",
-    "allowImportingTsExtensions":true,
-    "noEmit":true,
+    "moduleResolution": "nodenext",
 
     "skipLibCheck": true,
     "noUnusedLocals": true,

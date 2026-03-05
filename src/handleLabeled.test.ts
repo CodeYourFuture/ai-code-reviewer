@@ -1,11 +1,11 @@
 import type { EmitterWebhookEvent } from "@octokit/webhooks";
 import type { Octokit } from "octokit";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { handleLabeled } from "./handleLabeled.ts";
-import { runAiReview } from "./networks/ai_api_request.ts";
-import { getPRFiles } from "./networks/github.ts";
-import { postInlineComments } from "./networks/postInlineComment.ts";
-import { postPRComment } from "./networks/postPrComment.ts";
+import { handleLabeled } from "./handleLabeled.js";
+import { runAiReview } from "./networks/ai_api_request.js";
+import { getPRFiles } from "./networks/github.js";
+import { postInlineComments } from "./networks/postInlineComment.js";
+import { postPRComment } from "./networks/postPrComment.js";
 
 function makeEvent(labelName: string, sha = "abc123") {
   return {
@@ -27,21 +27,21 @@ function makeEvent(labelName: string, sha = "abc123") {
 }
 
 // Mock dependencies used in handleLabeled
-vi.mock("./networks/github.ts", () => ({
+vi.mock("./networks/github.js", () => ({
   getPRFiles: vi
     .fn()
-    .mockResolvedValue([{ filename: "file1.js" }, { filename: "file2.ts" }]),
+    .mockResolvedValue([{ filename: "file1.js" }, { filename: "file2.js" }]),
   logPRFiles: vi.fn(),
 }));
-vi.mock("./networks/ai_api_request.ts", () => ({
+vi.mock("./networks/ai_api_request.js", () => ({
   runAiReview: vi.fn().mockResolvedValue({
     feedback_points: [{ message: "fix this" }, { message: "fix that" }],
   }),
 }));
-vi.mock("./networks/postInlineComment.ts", () => ({
+vi.mock("./networks/postInlineComment.js", () => ({
   postInlineComments: vi.fn(),
 }));
-vi.mock("./networks/postPrComment.ts", () => ({
+vi.mock("./networks/postPrComment.js", () => ({
   postPRComment: vi.fn(),
 }));
 
@@ -66,7 +66,7 @@ describe("handleLabeled", () => {
     );
     expect(runAiReview).toHaveBeenCalledWith([
       { filename: "file1.js" },
-      { filename: "file2.ts" },
+      { filename: "file2.js" },
     ]);
     expect(postPRComment).toBeCalled();
     expect(postInlineComments).toHaveBeenNthCalledWith(

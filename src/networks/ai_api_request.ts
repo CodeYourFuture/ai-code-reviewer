@@ -1,9 +1,9 @@
 import { OpenRouter } from "@openrouter/sdk";
-import { env } from "../config/env";
-import { FeedbackResponse, FeedbackSchema } from "../types/aiResponse";
-import { PRFile } from "../types/githubTypes";
-import { buildPRReviewPrompt } from "../utils/buildPRReviewPrompt";
-import { getSchema } from "../utils/responseSchemas/getSchema";
+import { env } from "../config/env.js";
+import { FeedbackResponse, FeedbackSchema } from "../types/aiResponse.js";
+import { PRFile } from "../types/githubTypes.js";
+import { buildPRReviewPrompt } from "../utils/buildPRReviewPrompt.js";
+import { getSchema } from "../utils/responseSchemas/getSchema.js";
 
 const openRouter = new OpenRouter({
   apiKey: env.OPENROUTER_API_KEY,

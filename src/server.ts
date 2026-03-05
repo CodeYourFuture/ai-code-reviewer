@@ -1,7 +1,7 @@
 import { createNodeMiddleware } from "@octokit/webhooks";
 import express from "express";
-import { env } from "./config/env.ts";
-import { githubApp } from "./githubApp.ts";
+import { env } from "./config/env.js";
+import { githubApp } from "./githubApp.js";
 
 const path = "/api/webhook";
 

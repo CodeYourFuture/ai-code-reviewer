@@ -1,10 +1,10 @@
 import { RequestError } from "@octokit/request-error";
 import type { EmitterWebhookEvent } from "@octokit/webhooks";
 import { Octokit } from "octokit";
-import { runAiReview } from "./networks/ai_api_request.ts";
-import { getPRFiles, logPRFiles } from "./networks/github.ts";
-import { postInlineComments } from "./networks/postInlineComment.ts";
-import { postPRComment } from "./networks/postPrComment.ts";
+import { runAiReview } from "./networks/ai_api_request.js";
+import { getPRFiles, logPRFiles } from "./networks/github.js";
+import { postInlineComments } from "./networks/postInlineComment.js";
+import { postPRComment } from "./networks/postPrComment.js";
 
 const messageForNewPRs =
   "Thanks for opening a new PR! Please follow our contributing guidelines to make your PR easier to review.";

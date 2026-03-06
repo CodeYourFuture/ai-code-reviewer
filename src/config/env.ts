@@ -8,7 +8,7 @@ const envSchema = z.object({
   APP_ID: z.coerce.number().int().min(1),
   WEBHOOK_SECRET: z.string().min(1),
   PRIVATE_KEY_PATH: z.string().min(1),
-  WEBHOOK_PROXY_URL: z.url(),
+  WEBHOOK_PROXY_URL: z.url().optional(),
   OPENROUTER_API_KEY: z.string().min(1),
 });
 

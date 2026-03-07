@@ -4,6 +4,7 @@ import { FeedbackResponse, FeedbackSchema } from "../types/aiResponse.js";
 import { PRFile } from "../types/githubTypes.js";
 import { buildPRReviewPrompt } from "../utils/buildPRReviewPrompt.js";
 import { getSchema } from "../utils/responseSchemas/getSchema.js";
+import { retryWithValidation } from "./ai/retryWithValidation.js";
 
 const openRouter = new OpenRouter({
   apiKey: env.OPENROUTER_API_KEY,
@@ -30,7 +31,7 @@ const topics: string[] = [
   "Poorly scoped variables",
 ];
 
-export async function askOpenRouter(prompt: string): Promise<FeedbackResponse> {
+export async function aiCall(prompt: string): Promise<string> {
   const completion = await openRouter.chat.send({
     model: FreeModel,
     stream: false,
@@ -58,14 +59,14 @@ export async function askOpenRouter(prompt: string): Promise<FeedbackResponse> {
   if (typeof res !== "string") {
     throw new Error("Content returned from OpenRouter is not string");
   }
-  try {
-    const resJson = JSON.parse(res);
-    console.log(completion.usage);
-    return FeedbackSchema.parse(resJson);
-  } catch (e: any) {
-    console.error("Invalid JSON returned:", res);
-    throw new Error("Invalid JSON returned from OpenRouter", e);
-  }
+  console.log(completion.usage);
+  return res;
+}
+
+export function validateFeedbackResponse(response: string): FeedbackResponse {
+  console.log("validating response");
+  const parsed = JSON.parse(response);
+  return FeedbackSchema.parse(parsed);
 }
 
 export async function runAiReview(files: PRFile[]) {
@@ -81,4 +82,8 @@ export async function runAiReview(files: PRFile[]) {
   console.log("\n==========================================\n");
 
   return review;
+}
+
+export async function askOpenRouter(prompt: string): Promise<FeedbackResponse> {
+  return retryWithValidation(prompt);
 }

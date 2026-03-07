@@ -41,6 +41,6 @@ export const FeedbackPointSchema = z
 export const FeedbackSchema = z.object({
   feedback_points: z.array(FeedbackPointSchema),
 });
-
+// Always create a TypeScript type from the schema using z.infer.
 export type FeedbackResponse = z.infer<typeof FeedbackSchema>;
 export type FeedbackPoint = z.infer<typeof FeedbackPointSchema>;

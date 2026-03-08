@@ -22,6 +22,7 @@ One file can have multiple feedback points.
  Never leave line_numbers empty unless the issue is conceptual and applies to the entire file.
 All line numbers MUST appear ONLY inside the line_numbers field.
 DO NOT write line numbers inside description or summary.
+Only give correct and useful comments - we would rather miss issues (and leave a volunteer to notice them) than give incorrect or misleading comments.
   You should never, under any circumstances, give the feedback that there should be more code comments or better function documentation. Aim for better, more useful feedback.`;
 
 const topics: string[] = [

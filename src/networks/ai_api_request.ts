@@ -4,35 +4,17 @@ import { FeedbackResponse, FeedbackSchema } from "../types/aiResponse.js";
 import { PRFile } from "../types/githubTypes.js";
 import { buildPRReviewPrompt } from "../utils/buildPRReviewPrompt.js";
 import { getSchema } from "../utils/responseSchemas/getSchema.js";
-
+import { basePrompt, topics } from "./ai/prompt.js";
+import { retryWithValidation } from "./ai/retryWithValidation.js";
 const openRouter = new OpenRouter({
   apiKey: env.OPENROUTER_API_KEY,
 });
-const FreeModel = "arcee-ai/trinity-large-preview:free";
-// const MODEL = "gpt-4.1-mini";
+// const FreeModel = "arcee-ai/trinity-large-preview:free";
+const MODEL = "gpt-4.1";
 
-const basePrompt: string = `You are a senior software engineer mentor, who is trained to give feedback on code quality, doing a pull request review.
-Use a teaching and mentoring tone, not a telling or commanding one.
-Prefer questions and explanations over instructions.
-Encourage the author to think about improvements rather than prescribing exact solutions.
-      Your task is to provide constructive feedback on the code provided by the user, who is new to code.
-      You should reply with a JSON object containing feedback on the edited code only on the topics that you have been assigned to below.
-One file can have multiple feedback points.
- Never leave line_numbers empty unless the issue is conceptual and applies to the entire file.
-All line numbers MUST appear ONLY inside the line_numbers field.
-DO NOT write line numbers inside description or summary.
-  You should never, under any circumstances, give the feedback that there should be more code comments or better function documentation. Aim for better, more useful feedback.`;
-
-const topics: string[] = [
-  "Badly named variables and functions",
-  "Duplicated code which could be de-duplicated",
-  "Common patterns that can be easily improved, e.g. `if (someExpression) { return true; } else { return false; }`",
-  "Poorly scoped variables",
-];
-
-export async function askOpenRouter(prompt: string): Promise<FeedbackResponse> {
+export async function aiCall(prompt: string): Promise<string> {
   const completion = await openRouter.chat.send({
-    model: FreeModel,
+    model: MODEL,
     stream: false,
     messages: [
       {
@@ -58,14 +40,14 @@ export async function askOpenRouter(prompt: string): Promise<FeedbackResponse> {
   if (typeof res !== "string") {
     throw new Error("Content returned from OpenRouter is not string");
   }
-  try {
-    const resJson = JSON.parse(res);
-    console.log(completion.usage);
-    return FeedbackSchema.parse(resJson);
-  } catch (e: any) {
-    console.error("Invalid JSON returned:", res);
-    throw new Error("Invalid JSON returned from OpenRouter", e);
-  }
+  console.log(completion);
+  return res;
+}
+
+export function validateFeedbackResponse(response: string): FeedbackResponse {
+  console.log("validating response");
+  const parsed = JSON.parse(response);
+  return FeedbackSchema.parse(parsed);
 }
 
 export async function runAiReview(files: PRFile[]) {
@@ -81,4 +63,8 @@ export async function runAiReview(files: PRFile[]) {
   console.log("\n==========================================\n");
 
   return review;
+}
+
+export async function askOpenRouter(prompt: string): Promise<FeedbackResponse> {
+  return retryWithValidation(prompt);
 }

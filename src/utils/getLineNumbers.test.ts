@@ -1,7 +1,8 @@
 import { expect, test } from "vitest";
-import { getLineNumbers } from "./extractReviewParams";
+import { getLineNumbers } from "./extractReviewParams.js";
+import { FeedbackPoint } from "../types/aiResponse.js";
 
-const point = {
+const point: FeedbackPoint = {
   file_name: "Sprint-1/destructuring/exercise-3/exercise.js",
   summary:
     "Redundant parameter in findMaxItemNameLength, and code style improvements.",

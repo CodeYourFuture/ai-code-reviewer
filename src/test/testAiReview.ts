@@ -1,7 +1,7 @@
 // this is file for isolated testing. WIP
-// import { runAiReview } from "../networks/ai_api_request";
-// import { PRFile } from "../types/githubTypes";
-// import data from "../utils/sampleOutput/output152.json";
+import { runAiReview } from "../networks/ai_api_request.js";
+import { PRFile } from "../types/githubTypes.js";
+import data from "../utils/sampleOutput/output152.json" with { type: "json" };
 
-// const files: PRFile[] = data as PRFile[];
-// await runAiReview(files);
+const files: PRFile[] = data as PRFile[];
+await runAiReview(files);

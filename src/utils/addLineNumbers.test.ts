@@ -1,7 +1,7 @@
 import { expect, test } from "vitest";
-import addLineNumbers from "./addLineNumbers";
+import addLineNumbers from "./addLineNumbers.js";
 
-const patch =
+const patch: string =
   "@@ -6,7 +6,7 @@ const personOne = {\n \n // Update the parameter to this function to make it work.\n // Don't change anything else.\n-function introduceYourself(___________________________) {\n+function introduceYourself({ name, age, favouriteFood }) {\n   console.log(\n     `Hello, my name is ${name}. I am ${age} years old and my favourite food is ${favouriteFood}.`\n   );";
 
 test("lines annotated correctly", () => {

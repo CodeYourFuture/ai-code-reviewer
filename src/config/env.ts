@@ -7,7 +7,13 @@ const envSchema = z.object({
   PORT: z.coerce.number().default(3000),
   APP_ID: z.coerce.number().int().min(1),
   WEBHOOK_SECRET: z.string().min(1),
-  PRIVATE_KEY_PATH: z.string().min(1),
+
+  // dev option
+  GITHUB_PRIVATE_KEY_PATH: z.string().optional(),
+
+  // production option
+  GITHUB_PRIVATE_KEY: z.string().optional(),
+
   WEBHOOK_PROXY_URL: z.url().optional(),
   OPENROUTER_API_KEY: z.string().min(1),
 });
@@ -20,4 +26,14 @@ if (!parsed.success) {
 }
 export const env = parsed.data;
 
-export const privateKey = fs.readFileSync(env.PRIVATE_KEY_PATH, "utf8");
+export const privateKey = (() => {
+  if (env.GITHUB_PRIVATE_KEY) {
+    return env.GITHUB_PRIVATE_KEY.replace(/\\n/g, "\n");
+  }
+
+  if (env.GITHUB_PRIVATE_KEY_PATH) {
+    return fs.readFileSync(env.GITHUB_PRIVATE_KEY_PATH, "utf8");
+  }
+
+  throw new Error("Either PRIVATE_KEY or PRIVATE_KEY_PATH must be provided");
+})();

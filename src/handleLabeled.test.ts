@@ -15,12 +15,15 @@ function makeEvent(labelName: string, sha = "abc123") {
         owner: { login: "octocat" },
         name: "hello-world",
       },
+      sender: { login: "Droid-An" },
       pull_request: {
         number: 42,
         head: { sha },
       },
     },
-    octokit: {} as Octokit,
+    octokit: {
+      request: vi.fn().mockResolvedValue({ status: 204 }) as any,
+    } as Octokit,
   } as unknown as EmitterWebhookEvent<"pull_request.labeled"> & {
     octokit: Octokit;
   };

@@ -13,7 +13,6 @@ export async function checkMembershipForUser(
     return true;
   } catch (err: any) {
     if (err.status === 404) return false;
-    throw err;
   }
 }
 //command to see if user droid-an is a member of codeyourfuture

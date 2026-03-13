@@ -18,7 +18,7 @@ export async function handleLabeled(
     `Received a "labeled" event for PR #${payload.pull_request.number}`,
   );
   if (await checkMembershipForUser(payload.sender.login, octokit)) {
-    if (label === "needs review") {
+    if (label === "Needs Review") {
       try {
         const owner = payload.repository.owner.login;
         const repo = payload.repository.name;

@@ -11,8 +11,17 @@ export async function checkMembershipForUser(
       username: senderLogin,
     });
     return true;
-  } catch (err: any) {
-    if (err.status === 404) return false;
+  } catch (error: any) {
+    console.error(`
+GitHub API Error
+Message : ${error.message}
+Status  : ${error.status}
+URL     : ${error.request?.url}
+`);
+    console.log(error);
+    if (error.status === 404) {
+      return false;
+    }
   }
 }
 //command to see if user droid-an is a member of codeyourfuture

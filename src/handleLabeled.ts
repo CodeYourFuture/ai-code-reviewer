@@ -1,11 +1,11 @@
 import { RequestError } from "@octokit/request-error";
 import type { EmitterWebhookEvent } from "@octokit/webhooks";
 import { Octokit } from "octokit";
+import { getPRFiles, logPRFiles } from "./networks/github.js";
+import { postPRComment } from "./networks/postPrComment.js";
 import { checkMembershipForUser } from "./checkMembershipForUser.js";
 import { runAiReview } from "./networks/ai_api_request.js";
-import { getPRFiles, logPRFiles } from "./networks/github.js";
 import { postInlineComments } from "./networks/postInlineComment.js";
-import { postPRComment } from "./networks/postPrComment.js";
 
 const messageForNewPRs = "Thanks for opening a new PR! AI started to review it";
 
@@ -17,38 +17,43 @@ export async function handleLabeled(
   console.log(
     `Received a "labeled" event for PR #${payload.pull_request.number}`,
   );
-  if (await checkMembershipForUser(payload.sender.login, octokit)) {
-    if (label === "Needs Review") {
-      try {
-        const owner = payload.repository.owner.login;
-        const repo = payload.repository.name;
-        const pullNumber = payload.pull_request.number;
-        const commitId = payload.pull_request.head.sha;
+  if (!(await checkMembershipForUser(payload.sender.login, octokit))) {
+    console.log("sender isn't a member of cyf");
+    return;
+  }
 
-        postPRComment({
-          owner,
-          repo,
-          pullNumber,
-          body: messageForNewPRs,
-          octokit,
-        });
-        const files = await getPRFiles(owner, repo, pullNumber, octokit);
-        await logPRFiles(owner, repo, pullNumber, files);
-        const aiReview = await runAiReview(files);
+  if (label === "Needs Review") {
+    try {
+      const owner = payload.repository.owner.login;
+      const repo = payload.repository.name;
+      const pullNumber = payload.pull_request.number;
+      const commitId = payload.pull_request.head.sha;
 
-        for (const point of aiReview.feedback_points) {
-          postInlineComments(owner, repo, pullNumber, octokit, point, commitId);
+      postPRComment({
+        owner,
+        repo,
+        pullNumber,
+        body: messageForNewPRs,
+        octokit,
+      });
+      const files = await getPRFiles(owner, repo, pullNumber, octokit);
+      await logPRFiles(owner, repo, pullNumber, files);
+      const aiReview = await runAiReview(files);
+
+      for (const point of aiReview.feedback_points) {
+        postInlineComments(owner, repo, pullNumber, octokit, point, commitId);
+      }
+    } catch (error) {
+      if (error instanceof RequestError) {
+        if (error.response) {
+          console.error(
+            `Error! Status: ${error.response.status}. Message: ${error.response.data}`,
+          );
         }
-      } catch (error) {
-        if (error instanceof RequestError) {
-          if (error.response) {
-            console.error(
-              `Error! Status: ${error.response.status}. Message: ${error.response.data}`,
-            );
-          }
-          console.error(error);
-        }
+        console.error(error);
       }
     }
+  } else {
+    console.log(`Received label "${label}" isn't "Needs Review"`);
   }
 }

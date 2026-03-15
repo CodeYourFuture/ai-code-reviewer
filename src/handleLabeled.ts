@@ -1,11 +1,11 @@
 import { RequestError } from "@octokit/request-error";
 import type { EmitterWebhookEvent } from "@octokit/webhooks";
 import { Octokit } from "octokit";
+import { checkMembershipForUser } from "./checkMembershipForUser.js";
 import { runAiReview } from "./networks/ai_api_request.js";
 import { getPRFiles, logPRFiles } from "./networks/github.js";
 import { postInlineComments } from "./networks/postInlineComment.js";
 import { postPRComment } from "./networks/postPrComment.js";
-import { checkMembershipForUser } from "./checkMembershipForUser.js";
 
 const messageForNewPRs = "Thanks for opening a new PR! AI started to review it";
 
@@ -13,6 +13,7 @@ export async function handleLabeled(
   event: EmitterWebhookEvent<"pull_request.labeled"> & { octokit: Octokit },
 ) {
   const { payload, octokit } = event;
+  if (!payload.pull_request) return;
   const label = payload.label?.name;
   console.log(
     `Received a "labeled" event for PR #${payload.pull_request.number}`,
@@ -29,7 +30,7 @@ export async function handleLabeled(
       const pullNumber = payload.pull_request.number;
       const commitId = payload.pull_request.head.sha;
 
-      postPRComment({
+      await postPRComment({
         owner,
         repo,
         pullNumber,
@@ -40,7 +41,7 @@ export async function handleLabeled(
       await logPRFiles(owner, repo, pullNumber, files);
       const aiReview = await runAiReview(files);
 
-      postInlineComments(
+      await postInlineComments(
         owner,
         repo,
         pullNumber,

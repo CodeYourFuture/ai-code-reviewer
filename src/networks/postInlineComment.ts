@@ -1,45 +1,40 @@
 import { Octokit } from "octokit";
 import { FeedbackPoint } from "../types/aiResponse.js";
-import { CreateReviewCommentParams } from "../types/githubTypes.js";
-import { extractReviewParams } from "../utils/extractReviewParams.js";
+import { buildReviewCommentsArray } from "../utils/commentsToList.js";
 
 export async function postInlineComments(
   owner: string,
   repo: string,
   pullNumber: number,
   octokit: Octokit,
-  point: FeedbackPoint,
+  points: FeedbackPoint[],
   commitId: string,
 ) {
-  const feedbackParams = extractReviewParams(point);
-  for (let i = 0; i < feedbackParams.lines.length; i++) {
-    const lineReviewParams = formReviewParams(feedbackParams.lines[i]);
-    if (lineReviewParams) {
-      const reviewParams: CreateReviewCommentParams = {
-        owner,
-        repo,
-        pull_number: pullNumber,
-        commit_id: commitId,
-        body: feedbackParams.body,
-        path: feedbackParams.path,
-        ...lineReviewParams,
-        side: "RIGHT",
-      };
-      await octokit.rest.pulls.createReviewComment(reviewParams);
-    }
-  }
+  const comments = buildReviewCommentsArray(points);
+  if (!comments.length) return;
+  await octokit.request(
+    "POST /repos/{owner}/{repo}/pulls/{pull_number}/reviews",
+    {
+      owner,
+      repo,
+      pull_number: pullNumber,
+      commit_id: commitId,
+      event: "COMMENT",
+      comments,
+    },
+  );
 }
 export const formReviewParams = (lineFeedbackParams: number[]) => {
   if (lineFeedbackParams.length === 2) {
-    const lineReviewParams = {
+    return {
       start_line: lineFeedbackParams[0],
       line: lineFeedbackParams[1],
     };
-    return lineReviewParams;
-  } else if (lineFeedbackParams.length === 1) {
-    const lineReviewParams = {
+  }
+
+  if (lineFeedbackParams.length === 1) {
+    return {
       line: lineFeedbackParams[0],
     };
-    return lineReviewParams;
   }
 };

@@ -58,11 +58,14 @@ export async function runAiReview(files: PRFile[]) {
   console.log("\n🤖 Sending PR diff to OpenRouter for review...\n");
 
   const review = await askOpenRouter(prompt);
+  const importantFeedback = review.feedback_points.filter(
+    (point) => point.severity > 1,
+  );
   console.log("\n================ PR REVIEW ================\n");
-  console.log(review);
+  console.log(importantFeedback);
   console.log("\n==========================================\n");
 
-  return review;
+  return importantFeedback;
 }
 
 export async function askOpenRouter(prompt: string): Promise<FeedbackResponse> {

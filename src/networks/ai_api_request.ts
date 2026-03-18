@@ -10,17 +10,19 @@ const openRouter = new OpenRouter({
   apiKey: env.OPENROUTER_API_KEY,
 });
 // const FreeModel = "arcee-ai/trinity-large-preview:free";
-const MODEL = "gpt-4.1";
+export const MODEL = "gpt-4.1";
+export const parameters = {};
 
 export async function aiCall(prompt: string): Promise<string> {
   const completion = await openRouter.chat.send({
     model: MODEL,
+    ...parameters,
     stream: false,
     messages: [
       {
         role: "system",
         content: `${basePrompt}
-        Topics are ${topics}`,
+        Topics are: \n- ${topics.join(`\n- `)}`,
       },
       {
         role: "user",

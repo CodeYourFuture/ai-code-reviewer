@@ -8,8 +8,7 @@ const mockFeedback: FeedbackResponse = {
     {
       file_name: "file.ts",
       summary: "summary",
-      description: "description",
-      questions: "question",
+      point: "description",
       line_numbers: "10",
       severity: 1,
     },
@@ -29,8 +28,7 @@ describe("retryWithValidation", () => {
         {
           file_name: "file.ts",
           summary: "summary",
-          description: "description",
-          questions: "question",
+          point: "point",
           line_numbers: "10",
           severity: 1,
         },

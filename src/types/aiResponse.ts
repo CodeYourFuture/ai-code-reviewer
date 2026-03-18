@@ -10,15 +10,10 @@ export const FeedbackPointSchema = z
       .describe(
         "A very short summary of the problem, explained in the context of a beginner coder, without using any of the words in the title.",
       ),
-    description: z
+    point: z
       .string()
       .describe(
-        "A detailed explanation of the feedback given. All line numbers MUST be placed inside line_numbers and NEVER written inside the description text.",
-      ),
-    questions: z
-      .string()
-      .describe(
-        `Use a "teaching" style not a "telling" style (e.g. "I've noticed you have some duplicated code here - if you had to change one copy of it you'd need to remember to change the other - how could you avoid that?" rather than "You should extract a function here")`,
+        `A detailed explanation of the issue you are giving feedback on. If you ask question to nudge trainee towards better practices, use a "teaching" style not a "telling" style (e.g. "I've noticed you have some duplicated code here - if you had to change one copy of it you'd need to remember to change the other - how could you avoid that?" rather than "You should extract a function here")`,
       ),
     line_numbers: z
       .string()

@@ -8,4 +8,4 @@ const files: PRFile[] = data as PRFile[];
 const prompt = `${basePrompt}
         Topics are: \n- ${topics.join(`\n- `)}`;
 const review = await runAiReview(files);
-formAiOutputDataObject(parameters, MODEL, prompt, review);
+formAiOutputDataObject(parameters, MODEL, prompt, review.feedback_points);

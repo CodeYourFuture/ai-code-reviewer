@@ -18,7 +18,7 @@ export const FeedbackPointSchema = z
     line_numbers: z
       .string()
       .describe(
-        "The line numbers in the code where the feedback applies. Denoted as a comma separated list, with individual numbers or ranges of numbers (e.g. 3,4,10-15)",
+        "The line numbers in the code where the feedback applies. If issue lies in several location within one function, return one line range that covers both issues. Denoted as a comma separated list, with individual numbers or ranges of numbers (e.g. 3,4,10-15)",
       ),
     severity: z
       .number()

@@ -11,12 +11,15 @@ const openRouter = new OpenRouter({
 });
 // const FreeModel = "arcee-ai/trinity-large-preview:free";
 export const MODEL = "gpt-4.1";
-export const parameters = {};
+export const parameters = {
+  temperature: 0,
+};
 
 export async function aiCall(prompt: string): Promise<string> {
   const completion = await openRouter.chat.send({
     model: MODEL,
     ...parameters,
+
     stream: false,
     messages: [
       {
@@ -42,7 +45,6 @@ export async function aiCall(prompt: string): Promise<string> {
   if (typeof res !== "string") {
     throw new Error("Content returned from OpenRouter is not string");
   }
-  console.log(completion);
   return res;
 }
 

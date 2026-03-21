@@ -24,7 +24,7 @@ export async function formAiOutputDataObject(
   const timestamp = new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19);
   try {
     fs.writeFileSync(
-      path.join(dir, `${timestamp}${name}.json`),
+      path.join(dir, `${timestamp} ${name}.json`),
       JSON.stringify(data, null, 2),
     );
   } catch (e) {

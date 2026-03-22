@@ -1,16 +1,16 @@
 import { OpenRouter } from "@openrouter/sdk";
 import { ChatGenerationParams } from "@openrouter/sdk/models";
-import { env } from "../../config/env.js";
+import { env } from "../config/env.js";
 import {
   AiResponse,
   AiResponseSchema,
   FEEDBACK_TYPES,
-} from "../../types/aiResponse.js";
-import { PRFile } from "../../types/githubTypes.js";
-import { buildPRReviewPrompt } from "../../utils/buildPRReviewPrompt.js";
-import { getSchema } from "../../utils/responseSchemas/getSchema.js";
-import { badCommentsPrompt, basePrompt, topics } from "./prompt.js";
-import { askOpenRouterWithValidation } from "./retryWithValidation.js";
+} from "../types/aiResponse.js";
+import { PRFile } from "../types/githubTypes.js";
+import { buildPRReviewPrompt } from "../utils/buildPRReviewPrompt.js";
+import { getSchema } from "../utils/responseSchemas/getSchema.js";
+import { badCommentsPrompt, basePrompt, topics } from "./ai/prompt.js";
+import { askOpenRouterWithValidation } from "./ai/retryWithValidation.js";
 
 interface ChatMessage {
   role: "system" | "user" | "assistant";

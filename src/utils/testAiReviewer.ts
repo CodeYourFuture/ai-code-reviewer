@@ -4,7 +4,7 @@ import {
   commentQualityPrompt,
   defaultChatParameters,
   runAiReview,
-} from "../networks/ai/ai_api_request.js";
+} from "../networks/ai_api_request.js";
 import { PRFile } from "../types/githubTypes.js";
 import data from "../utils/sampleOutput/output2.json" with { type: "json" };
 import { formAiOutputDataObject } from "./storeAiReviewData.js";

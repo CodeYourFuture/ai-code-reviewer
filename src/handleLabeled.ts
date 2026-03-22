@@ -23,7 +23,7 @@ export async function handleLabeled(
     return;
   }
 
-  if (label === "Needs Review") {
+  if (label?.toLocaleLowerCase() === "needs review") {
     try {
       const owner = payload.repository.owner.login;
       const repo = payload.repository.name;

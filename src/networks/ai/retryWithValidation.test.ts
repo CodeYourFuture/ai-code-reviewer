@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { FeedbackResponse } from "../../types/aiResponse.js";
 import * as aiModule from "../ai_api_request.js";
-import { retryWithValidation } from "./retryWithValidation.js";
+import { askOpenRouterWithValidation } from "./retryWithValidation.js";
 
 const mockFeedback: FeedbackResponse = {
   feedback_points: [
@@ -15,7 +15,7 @@ const mockFeedback: FeedbackResponse = {
   ],
 };
 
-describe("retryWithValidation", () => {
+describe("askOpenRouterWithValidation", () => {
   beforeEach(() => {
     vi.restoreAllMocks();
   });
@@ -41,7 +41,7 @@ describe("retryWithValidation", () => {
       .spyOn(aiModule, "validateFeedbackResponse")
       .mockReturnValue(mockFeedback);
 
-    const result = await retryWithValidation(prompt);
+    const result = await askOpenRouterWithValidation(prompt, "code quality");
 
     expect(result).toEqual(mockFeedback);
     expect(aiSpy).toHaveBeenCalledTimes(1);
@@ -60,7 +60,7 @@ describe("retryWithValidation", () => {
       })
       .mockReturnValueOnce(mockFeedback);
 
-    const result = await retryWithValidation(prompt);
+    const result = await askOpenRouterWithValidation(prompt, "code quality");
 
     expect(result).toEqual(mockFeedback);
     expect(aiSpy).toHaveBeenCalledTimes(2);
@@ -76,9 +76,9 @@ describe("retryWithValidation", () => {
       throw new Error("Invalid schema");
     });
 
-    await expect(retryWithValidation(prompt, 1)).rejects.toThrow(
-      "Invalid schema",
-    );
+    await expect(
+      askOpenRouterWithValidation(prompt, "code quality"),
+    ).rejects.toThrow("Invalid schema");
 
     expect(aiSpy).toHaveBeenCalledTimes(2);
   });

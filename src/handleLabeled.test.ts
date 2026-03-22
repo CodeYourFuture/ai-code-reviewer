@@ -78,7 +78,7 @@ describe("handleLabeled", () => {
       "hello-world",
       42,
       expect.anything(),
-      { message: "fix this" },
+      [{ message: "fix this" }, { message: "fix that" }],
       "abc123",
     );
   });

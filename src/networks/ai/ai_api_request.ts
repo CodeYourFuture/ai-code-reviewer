@@ -1,19 +1,22 @@
 import { OpenRouter } from "@openrouter/sdk";
 import { ChatGenerationParams } from "@openrouter/sdk/models";
-import { env } from "../config/env.js";
-import { FeedbackResponse, FeedbackSchema } from "../types/aiResponse.js";
-import { PRFile } from "../types/githubTypes.js";
-import { buildPRReviewPrompt } from "../utils/buildPRReviewPrompt.js";
-import { getSchema } from "../utils/responseSchemas/getSchema.js";
-import { badCommentsPrompt, basePrompt, topics } from "./ai/prompt.js";
-import { askOpenRouterWithValidation } from "./ai/retryWithValidation.js";
+import { env } from "../../config/env.js";
+import {
+  FEEDBACK_TYPES,
+  FeedbackResponse,
+  FeedbackSchema,
+} from "../../types/aiResponse.js";
+import { PRFile } from "../../types/githubTypes.js";
+import { buildPRReviewPrompt } from "../../utils/buildPRReviewPrompt.js";
+import { getSchema } from "../../utils/responseSchemas/getSchema.js";
+import { badCommentsPrompt, basePrompt, topics } from "./prompt.js";
+import { askOpenRouterWithValidation } from "./retryWithValidation.js";
 
 interface ChatMessage {
   role: "system" | "user" | "assistant";
   content: string;
 }
 
-const FEEDBACK_TYPES = ["code quality", "comments quality"];
 const openRouter = new OpenRouter({
   apiKey: env.OPENROUTER_API_KEY,
 });
@@ -103,4 +106,10 @@ export async function runAiReview(files: PRFile[]) {
   console.log("\n==========================================\n");
 
   return combinedReview;
+}
+
+function groupPointsByFileAndTopic(
+  combinedReview: FeedbackResponse,
+): FeedbackResponse {
+  combinedReview;
 }

@@ -10,7 +10,7 @@ const __dirname = path.dirname(__filename);
 export async function formAiOutputDataObject(
   parameters: object,
   model: string,
-  prompt: string,
+  prompt: string[],
   review: FeedbackPoint[],
 ) {
   const data = {

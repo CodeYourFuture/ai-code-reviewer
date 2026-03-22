@@ -2,9 +2,9 @@ import { OpenRouter } from "@openrouter/sdk";
 import { ChatGenerationParams } from "@openrouter/sdk/models";
 import { env } from "../../config/env.js";
 import {
+  AiResponse,
+  AiResponseSchema,
   FEEDBACK_TYPES,
-  FeedbackResponse,
-  FeedbackSchema,
 } from "../../types/aiResponse.js";
 import { PRFile } from "../../types/githubTypes.js";
 import { buildPRReviewPrompt } from "../../utils/buildPRReviewPrompt.js";
@@ -74,42 +74,39 @@ export async function aiCall(
   return res;
 }
 
-export function validateFeedbackResponse(response: string): FeedbackResponse {
+export function validateAiResponse(response: string): AiResponse {
   console.log("validating response");
   const parsed = JSON.parse(response);
-  return FeedbackSchema.parse(parsed);
+  return AiResponseSchema.parse(parsed);
 }
 
-export async function runAiReview(files: PRFile[]) {
+export async function runAiReview(files: PRFile[]): Promise<AiResponse[]> {
   const code = buildPRReviewPrompt({
     files,
   });
   console.log("--------- CODE --------\n", code);
   console.log("\n🤖 Sending PR diff to OpenRouter for review...\n");
-  const combinedReview: FeedbackResponse = { feedback_points: [] };
+  const combinedReview: AiResponse[] = [];
   const feedbackPromises = FEEDBACK_TYPES.map((type) =>
     askOpenRouterWithValidation(code, type),
   );
+
   const results = await Promise.allSettled(feedbackPromises);
   results.forEach((result) => {
     if (result.status === "fulfilled") {
       const feedback = result.value;
-      combinedReview.feedback_points.push(...feedback.feedback_points);
+      combinedReview.push(feedback);
     }
   });
-
-  combinedReview.feedback_points = combinedReview.feedback_points.filter(
-    (point) => point.severity > 1,
+  combinedReview.forEach(
+    (review) =>
+      (review.feedback_points = review.feedback_points.filter(
+        (point) => point.severity > 1,
+      )),
   );
   console.log("\n================ PR REVIEW ================\n");
   console.log(combinedReview);
   console.log("\n==========================================\n");
 
   return combinedReview;
-}
-
-function groupPointsByFileAndTopic(
-  combinedReview: FeedbackResponse,
-): FeedbackResponse {
-  combinedReview;
 }

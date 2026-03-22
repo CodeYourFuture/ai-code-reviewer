@@ -12,9 +12,4 @@ import { formAiOutputDataObject } from "./storeAiReviewData.js";
 const files: PRFile[] = data as PRFile[];
 const prompts = [codeQualityPrompt, commentQualityPrompt];
 const review = await runAiReview(files);
-formAiOutputDataObject(
-  defaultChatParameters,
-  MODEL,
-  prompts,
-  review.feedback_points,
-);
+formAiOutputDataObject(defaultChatParameters, MODEL, prompts, review);

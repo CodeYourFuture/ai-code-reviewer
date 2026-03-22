@@ -1,15 +1,16 @@
-import { FeedbackResponse } from "../../types/aiResponse.js";
-import { aiCall, validateFeedbackResponse } from "./ai_api_request.js";
+import { AiResponse } from "../../types/aiResponse.js";
+import { aiCall, validateAiResponse } from "./ai_api_request.js";
 
 export async function askOpenRouterWithValidation(
   code: string,
   reviewType: string,
   retries = 1,
-): Promise<FeedbackResponse> {
+): Promise<AiResponse> {
   for (let attempt = 0; attempt <= retries; attempt++) {
     try {
       const response = await aiCall(code, reviewType);
-      return validateFeedbackResponse(response);
+      response;
+      return validateAiResponse(response);
     } catch (error: any) {
       if (attempt === retries) {
         throw error;

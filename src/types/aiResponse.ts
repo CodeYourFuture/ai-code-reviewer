@@ -1,5 +1,9 @@
 import { z } from "zod";
 
+// If you declare your string array as a variable, Zod won't be able to properly infer the exact values of each element
+// To fix this, always pass the array directly into the z.enum() function, or use as const.
+// https://zod.dev/api?id=enums
+export const FEEDBACK_TYPES = ["code quality", "comments quality"] as const;
 export const FeedbackPointSchema = z
   .object({
     file_name: z
@@ -33,10 +37,11 @@ export const FeedbackPointSchema = z
     "A collection of feedback points. Each feedback_point must refer to exactly one issue.",
   );
 
-export const FeedbackSchema = z.object({
+export const AiResponseSchema = z.object({
+  feedback_type: z.enum(FEEDBACK_TYPES),
   feedback_points: z.array(FeedbackPointSchema),
 });
-
+//currently not in use
 export const CommentPointSchema = z
   .object({
     file_name: z
@@ -55,5 +60,5 @@ export const CommentPointSchema = z
   })
   .describe("A collection of feedback points.");
 // Always create a TypeScript type from the schema using z.infer.
-export type FeedbackResponse = z.infer<typeof FeedbackSchema>;
+export type AiResponse = z.infer<typeof AiResponseSchema>;
 export type FeedbackPoint = z.infer<typeof FeedbackPointSchema>;

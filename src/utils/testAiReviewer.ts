@@ -1,7 +1,7 @@
 import {
   MODEL,
   codeQualityPrompt,
-  commentPrompt,
+  commentQualityPrompt,
   defaultChatParameters,
   runAiReview,
 } from "../networks/ai_api_request.js";
@@ -10,7 +10,7 @@ import data from "../utils/sampleOutput/output2.json" with { type: "json" };
 import { formAiOutputDataObject } from "./storeAiReviewData.js";
 
 const files: PRFile[] = data as PRFile[];
-const prompts = [codeQualityPrompt, commentPrompt];
+const prompts = [codeQualityPrompt, commentQualityPrompt];
 const review = await runAiReview(files);
 formAiOutputDataObject(
   defaultChatParameters,

@@ -21,7 +21,7 @@ const openRouter = new OpenRouter({
 export const MODEL = "gpt-4.1";
 export const codeQualityPrompt = `${basePrompt}
         Topics are: \n- ${topics.join(`\n- `)}`;
-export const commentPrompt = badCommentsPrompt;
+export const commentQualityPrompt = badCommentsPrompt;
 export const defaultChatParameters: Partial<ChatGenerationParams> = {
   temperature: 0,
   model: MODEL,
@@ -30,28 +30,32 @@ export const defaultChatParameters: Partial<ChatGenerationParams> = {
     jsonSchema: getSchema,
   },
 };
+
+function buildMessages(code: string, feedbackType: string): ChatMessage[] {
+  const base: ChatMessage[] = [{ role: "user", content: code }];
+
+  const systemPrompt = getSystemPrompt(feedbackType);
+  return systemPrompt
+    ? [{ role: "system", content: systemPrompt }, ...base]
+    : base;
+}
+
+function getSystemPrompt(type: string): string | null {
+  switch (type.toLowerCase()) {
+    case "code quality":
+      return codeQualityPrompt;
+    case "comments quality":
+      return commentQualityPrompt;
+    default:
+      return null;
+  }
+}
+
 export async function aiCall(
   code: string,
-  feedbackType: string = "code quality",
+  feedbackType: string,
 ): Promise<string> {
-  const messages: ChatMessage[] = [
-    {
-      role: "user",
-      content: code,
-    },
-  ];
-  if (feedbackType.toLocaleLowerCase() === "code quality") {
-    messages.unshift({
-      role: "system",
-      content: codeQualityPrompt,
-    });
-  }
-  if (feedbackType.toLocaleLowerCase() === "comments quality") {
-    messages.unshift({
-      role: "system",
-      content: badCommentsPrompt,
-    });
-  }
+  const messages: ChatMessage[] = buildMessages(code, feedbackType);
   const completion = await openRouter.chat.send({
     ...defaultChatParameters,
     messages: messages,
@@ -80,8 +84,8 @@ export async function runAiReview(files: PRFile[]) {
   console.log("--------- CODE --------\n", code);
   console.log("\n🤖 Sending PR diff to OpenRouter for review...\n");
   const combinedReview: FeedbackResponse = { feedback_points: [] };
-  const feedbackPromises = FEEDBACK_TYPES.map(
-    async (type) => await askOpenRouterWithValidation(code, type),
+  const feedbackPromises = FEEDBACK_TYPES.map((type) =>
+    askOpenRouterWithValidation(code, type),
   );
   const results = await Promise.allSettled(feedbackPromises);
   results.forEach((result) => {
@@ -90,10 +94,6 @@ export async function runAiReview(files: PRFile[]) {
       combinedReview.feedback_points.push(...feedback.feedback_points);
     }
   });
-  // const codeQualityReview = await askOpenRouterWithValidation(
-  //   code,
-  //   "code quality",
-  // );
 
   combinedReview.feedback_points = combinedReview.feedback_points.filter(
     (point) => point.severity > 1,

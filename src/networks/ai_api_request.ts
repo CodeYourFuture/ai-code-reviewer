@@ -105,7 +105,7 @@ export async function runAiReview(files: PRFile[]): Promise<AiResponse[]> {
       )),
   );
   console.log("\n================ PR REVIEW ================\n");
-  console.log(combinedReview);
+  console.log(JSON.stringify(combinedReview, null, 2));
   console.log("\n==========================================\n");
 
   return combinedReview;

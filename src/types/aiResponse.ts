@@ -4,11 +4,17 @@ import { z } from "zod";
 // To fix this, always pass the array directly into the z.enum() function, or use as const.
 // https://zod.dev/api?id=enums
 export const FEEDBACK_TYPES = ["code quality", "comments quality"] as const;
+
 export const FeedbackPointSchema = z
   .object({
     file_name: z
       .string()
       .describe("The name of the file where the feedback applies."),
+    topics: z
+      .array(z.string())
+      .describe(
+        "The list of topics from the prompt used to evaluate the issue. If same issue falls under several topic, list them all",
+      ),
     summary: z
       .string()
       .describe(

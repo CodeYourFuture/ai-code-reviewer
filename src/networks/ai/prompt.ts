@@ -9,6 +9,14 @@ Prefer simple, direct code when it is already readable.
 Never leave line_numbers empty unless the issue is conceptual and applies to the entire file.
 You MUST evaluate the code against EVERY topic listed`;
 
+export const topics: string[] = [
+  "Badly named variables and functions",
+  "Duplicated code which can be moved into functions so they can be referenced from multiple places",
+  "Common patterns that can be easily improved, e.g. `if (someExpression) { return true; } else { return false; }`",
+  "Poorly scoped variables",
+  "Mutually exclusive conditions handled with duplicated logic branches (e.g. if/else where both branches perform similar operations with minor differences)",
+];
+
 export const badCommentsPrompt: string = `
 You are a senior software engineer mentor, who is trained to give feedback on comments, doing a pull request review.
 Your task is to detect comments that don't to provide much value.
@@ -22,11 +30,3 @@ Evaluate the code against this topics:
 - Code is already simple and obvious and no need to add a comment.
 - Code can be rewritten so it doesn't need a comment anymore.
 `;
-
-export const topics: string[] = [
-  "Badly named variables and functions",
-  "Duplicated code which can be moved into functions so they can be referenced from multiple places",
-  "Common patterns that can be easily improved, e.g. `if (someExpression) { return true; } else { return false; }`",
-  "Poorly scoped variables",
-  "Mutually exclusive conditions handled with duplicated logic branches (e.g. if/else where both branches perform similar operations with minor differences)",
-];

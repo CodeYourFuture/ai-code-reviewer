@@ -101,7 +101,7 @@ export async function runAiReview(files: PRFile[]): Promise<AiResponse[]> {
   combinedReview.forEach(
     (review) =>
       (review.feedback_points = review.feedback_points.filter(
-        (point) => point.severity > 1,
+        (point) => point.severity > 2,
       )),
   );
   console.log("\n================ PR REVIEW ================\n");

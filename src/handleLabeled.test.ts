@@ -37,9 +37,29 @@ vi.mock("./networks/github.js", () => ({
   logPRFiles: vi.fn(),
 }));
 vi.mock("./networks/ai_api_request.js", () => ({
-  runAiReview: vi.fn().mockResolvedValue({
-    feedback_points: [{ message: "fix this" }, { message: "fix that" }],
-  }),
+  runAiReview: vi.fn().mockResolvedValue([
+    {
+      feedback_type: "code quality",
+      feedback_points: [
+        {
+          file_name: "file1.js",
+          topics: ["bad naming"],
+          summary: "Variable name could be clearer",
+          point: "Consider renaming this variable",
+          line_numbers: "10",
+          severity: 2,
+        },
+        {
+          file_name: "file2.js",
+          topics: ["duplicated code"],
+          summary: "Code is repeated",
+          point: "Extract this into a function",
+          line_numbers: "20-25",
+          severity: 3,
+        },
+      ],
+    },
+  ]),
 }));
 vi.mock("./networks/postInlineComment.js", () => ({
   postInlineComments: vi.fn(),
@@ -78,7 +98,27 @@ describe("handleLabeled", () => {
       "hello-world",
       42,
       expect.anything(),
-      [{ message: "fix this" }, { message: "fix that" }],
+      {
+        feedback_type: "code quality",
+        feedback_points: [
+          {
+            file_name: "file1.js",
+            topics: ["bad naming"],
+            summary: "Variable name could be clearer",
+            point: "Consider renaming this variable",
+            line_numbers: "10",
+            severity: 2,
+          },
+          {
+            file_name: "file2.js",
+            topics: ["duplicated code"],
+            summary: "Code is repeated",
+            point: "Extract this into a function",
+            line_numbers: "20-25",
+            severity: 3,
+          },
+        ],
+      },
       "abc123",
     );
   });

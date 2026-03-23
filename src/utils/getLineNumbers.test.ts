@@ -4,6 +4,7 @@ import { getLineNumbers } from "./extractReviewParams.js";
 
 const point: FeedbackPoint = {
   file_name: "Sprint-1/destructuring/exercise-3/exercise.js",
+  topics: [],
   summary:
     "Redundant parameter in findMaxItemNameLength, and code style improvements.",
   point:

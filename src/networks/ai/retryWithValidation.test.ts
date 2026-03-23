@@ -8,6 +8,7 @@ const mockFeedback: AiResponse = {
   feedback_points: [
     {
       file_name: "file.ts",
+      topics: [],
       summary: "summary",
       point: "description",
       line_numbers: "10",

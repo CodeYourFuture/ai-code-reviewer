@@ -28,15 +28,15 @@ export const FeedbackPointSchema = z
     line_numbers: z
       .string()
       .describe(
-        "The line numbers in the code where the feedback applies. If issue lies in several location within one function, return one line range that covers both issues. When referring to bad naming, only return line numbers where that naming declared. Denoted as a comma separated list, with individual numbers or ranges of numbers (e.g. 3,4,10-15)",
+        "The line numbers in the code where the feedback applies. If issue lies in several location within one function, return one line range that covers both issues. When referring to a variable, only return line numbers where that variable is declared. Denoted as a comma separated list, with individual numbers or ranges of numbers (e.g. 3,4,10-15)",
       ),
     severity: z
       .number()
       .int()
       .min(1)
-      .max(5)
+      .max(10)
       .describe(
-        "The severity of the feedback. 1 is the lowest severity and 5 is the highest. The severity should be classified as 5=Critical, 4=High, 3=Medium, 2=Low, 1=Informational.",
+        "The severity of the feedback. The severity should be classified as: 1 — Cosmetic, 2 — Very Low,3 — Low,4 — Moderate-Low,5 — Moderate,6 — Moderate-High,7 — High,8 — Very High,9 — Critical,10 — Blocker",
       ),
   })
   .describe(

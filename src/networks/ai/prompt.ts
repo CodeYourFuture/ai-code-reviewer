@@ -10,11 +10,12 @@ Never leave line_numbers empty unless the issue is conceptual and applies to the
 You MUST evaluate the code against EVERY topic listed`;
 
 export const topics: string[] = [
-  "Badly named variables and functions",
   "Duplicated code which can be moved into functions so they can be referenced from multiple places",
-  "Common patterns that can be easily improved, e.g. `if (someExpression) { return true; } else { return false; }`",
-  "Poorly scoped variables",
-  "Mutually exclusive conditions handled with duplicated logic branches (e.g. if/else where both branches perform similar operations with minor differences)",
+  "More than 6 levels of Deep Nesting",
+  "Returning true or false from a condition, e.g `if (someExpression) { return true; } else { return false; }`",
+  "Loose scoped variables",
+  "Making temporary variables which could be directly returned without improved clarity",
+  "Bad naming that deceives the reader about what variable stores or function logic ",
 ];
 
 export const badCommentsPrompt: string = `

@@ -98,12 +98,14 @@ export async function runAiReview(files: PRFile[]): Promise<AiResponse[]> {
       combinedReview.push(feedback);
     }
   });
-  combinedReview.forEach(
-    (review) =>
-      (review.feedback_points = review.feedback_points.filter(
-        (point) => point.severity > 2,
-      )),
-  );
+  combinedReview
+    .filter((review) => review.feedback_type != "comments quality")
+    .forEach(
+      (review) =>
+        (review.feedback_points = review.feedback_points.filter(
+          (point) => point.severity > 2,
+        )),
+    );
   console.log("\n================ PR REVIEW ================\n");
   console.log(JSON.stringify(combinedReview, null, 2));
   console.log("\n==========================================\n");

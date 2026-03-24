@@ -16,6 +16,12 @@ const envSchema = z.object({
 
   WEBHOOK_PROXY_URL: z.url().optional(),
   OPENROUTER_API_KEY: z.string().min(1),
+
+  // Database
+  DATABASE_USER: z.string().min(1),
+  DATABASE_PASSWORD: z.string().min(1),
+  DATABASE_NAME: z.string().min(1),
+  DATABASE_URL: z.string().optional(),
 });
 
 const parsed = envSchema.safeParse(process.env);

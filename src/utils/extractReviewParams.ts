@@ -3,7 +3,7 @@ import { FeedbackPoint } from "../types/aiResponse.js";
 export function extractReviewParams(point: FeedbackPoint) {
   const pointLines = getLineNumbers(point.line_numbers);
   return {
-    body: point.questions,
+    body: point.point,
     path: point.file_name,
     lines: pointLines,
   };

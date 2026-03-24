@@ -1,5 +1,5 @@
 import { OpenRouter } from "@openrouter/sdk";
-import { ChatGenerationParams } from "@openrouter/sdk/models";
+import { ChatGenerationParams, Message } from "@openrouter/sdk/models";
 import { env } from "../config/env.js";
 import {
   AiResponse,
@@ -11,11 +11,6 @@ import { buildPRReviewPrompt } from "../utils/buildPRReviewPrompt.js";
 import { getSchema } from "../utils/responseSchemas/getSchema.js";
 import { badCommentsPrompt, basePrompt, topics } from "./ai/prompt.js";
 import { askOpenRouterWithValidation } from "./ai/retryWithValidation.js";
-
-interface ChatMessage {
-  role: "system" | "user" | "assistant";
-  content: string;
-}
 
 const openRouter = new OpenRouter({
   apiKey: env.OPENROUTER_API_KEY,
@@ -34,13 +29,16 @@ export const defaultChatParameters: Partial<ChatGenerationParams> = {
   },
 };
 
-function buildMessages(code: string, feedbackType: string): ChatMessage[] {
-  const base: ChatMessage[] = [{ role: "user", content: code }];
+function buildMessages(code: string, feedbackType: string): Message[] {
+  const userMessage: Message = {
+    role: "user",
+    content: code,
+  };
 
   const systemPrompt = getSystemPrompt(feedbackType);
   return systemPrompt
-    ? [{ role: "system", content: systemPrompt }, ...base]
-    : base;
+    ? [{ role: "system", content: systemPrompt }, userMessage]
+    : [userMessage];
 }
 
 function getSystemPrompt(type: string): string | null {
@@ -58,7 +56,7 @@ export async function aiCall(
   code: string,
   feedbackType: string,
 ): Promise<string> {
-  const messages: ChatMessage[] = buildMessages(code, feedbackType);
+  const messages: Message[] = buildMessages(code, feedbackType);
   const completion = await openRouter.chat.send({
     ...defaultChatParameters,
     messages: messages,

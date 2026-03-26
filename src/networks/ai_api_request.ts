@@ -96,12 +96,13 @@ export async function runAiReview(files: PRFile[]): Promise<AiResponse[]> {
       combinedReview.push(feedback);
     }
   });
+  const SEVERITY_THRESHOLD = 2;
   combinedReview
     .filter((review) => review.feedback_type != "comments quality")
     .forEach(
       (review) =>
         (review.feedback_points = review.feedback_points.filter(
-          (point) => point.severity > 2,
+          (point) => point.severity > SEVERITY_THRESHOLD,
         )),
     );
   console.log("\n================ PR REVIEW ================\n");

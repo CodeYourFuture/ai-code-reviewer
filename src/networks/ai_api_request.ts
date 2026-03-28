@@ -105,9 +105,23 @@ export async function runAiReview(files: PRFile[]): Promise<AiResponse[]> {
           (point) => point.severity > SEVERITY_THRESHOLD,
         )),
     );
+  combinedReview.forEach((review) => removeAdditionalLineNumbers(review));
   console.log("\n================ PR REVIEW ================\n");
   console.log(JSON.stringify(combinedReview, null, 2));
   console.log("\n==========================================\n");
 
   return combinedReview;
+}
+export function removeAdditionalLineNumbers(review: AiResponse): AiResponse {
+  const sanitisedLineNumbers = review.feedback_points.map((point) => {
+    if (point.line_numbers[0].includes(",")) {
+      point.line_numbers[0] = point.line_numbers[0].split(", ")[0];
+    }
+    return point;
+  });
+
+  return {
+    ...review,
+    feedback_points: sanitisedLineNumbers,
+  };
 }

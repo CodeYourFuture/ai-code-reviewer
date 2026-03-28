@@ -1,6 +1,7 @@
 import { Octokit } from "octokit";
 import { AiResponse } from "../types/aiResponse.js";
 import { buildReviewCommentsArray } from "../utils/commentsToList.js";
+import type { CreateReviewComment } from "../types/githubTypes.js";
 
 export async function postInlineComments(
   owner: string,
@@ -12,9 +13,7 @@ export async function postInlineComments(
 ) {
   const points = review.feedback_points;
   if (review.feedback_type === "comments quality") {
-    const amountOfAiComments = points.reduce((acc, curr) => {
-      return 1 + acc + (curr.line_numbers.match(/,/g)?.length ?? 0);
-    }, 0);
+    const amountOfAiComments = points.length;
     if (amountOfAiComments > 3) {
       await octokit.request(
         "POST /repos/{owner}/{repo}/pulls/{pull_number}/reviews",
@@ -29,7 +28,7 @@ export async function postInlineComments(
       );
     }
   } else {
-    const comments = buildReviewCommentsArray(points);
+    const comments: CreateReviewComment[] = buildReviewCommentsArray(points);
     if (!comments.length) return;
     await octokit.request(
       "POST /repos/{owner}/{repo}/pulls/{pull_number}/reviews",

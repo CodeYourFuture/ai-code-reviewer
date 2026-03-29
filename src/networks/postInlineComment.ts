@@ -8,11 +8,17 @@ export async function postInlineComments(
   repo: string,
   pullNumber: number,
   octokit: Octokit,
-  review: AiResponse,
+  review: AiResponse[],
   commitId: string,
 ) {
-  const points = review.feedback_points;
-  if (review.feedback_type === "comments quality" && points.length > 3) {
+  const codeQualityReview = review.find(
+    (reviewType) => reviewType.feedback_type === "comments quality",
+  );
+
+  if (codeQualityReview && codeQualityReview.feedback_points.length > 3) {
+    review = review.filter(
+      (feedback) => feedback.feedback_type != "comments quality",
+    );
     await octokit.request(
       "POST /repos/{owner}/{repo}/pulls/{pull_number}/reviews",
       {
@@ -24,9 +30,11 @@ export async function postInlineComments(
         body: "There are many code comment that doesn't provide much value. Could you please check if some comments can be removed, for example comments that just repeat what code does?",
       },
     );
-  } else {
-    const comments: CreateReviewComment[] = buildReviewCommentsArray(points);
-    if (!comments.length) return;
+  }
+  const comments: CreateReviewComment[] = review.flatMap((reviewType) => {
+    return buildReviewCommentsArray(reviewType.feedback_points);
+  });
+  if (comments.length) {
     await octokit.request(
       "POST /repos/{owner}/{repo}/pulls/{pull_number}/reviews",
       {

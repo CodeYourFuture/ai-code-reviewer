@@ -42,16 +42,14 @@ export async function handleLabeled(
       await logPRFiles(owner, repo, pullNumber, files);
       const aiReview = await runAiReview(files);
       const validatedReview = validateFeedbackPoints(aiReview, files);
-      validatedReview.forEach(async (review) => {
-        await postInlineComments(
-          owner,
-          repo,
-          pullNumber,
-          octokit,
-          review,
-          commitId,
-        );
-      });
+      await postInlineComments(
+        owner,
+        repo,
+        pullNumber,
+        octokit,
+        validatedReview,
+        commitId,
+      );
     } catch (error) {
       if (error instanceof RequestError) {
         if (error.response) {

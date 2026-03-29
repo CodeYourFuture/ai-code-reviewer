@@ -18,12 +18,12 @@ export const FeedbackPointSchema = z
     summary: z
       .string()
       .describe(
-        "A very short summary of the problem, explained in the context of a beginner coder, without using any of the words in the title.",
+        "A very short summary of the problem, explained in the context of a beginner coder",
       ),
     point: z
       .string()
       .describe(
-        `A detailed explanation of the issue you are giving feedback on. If you ask question to nudge trainee towards better practices, use a "teaching" style not a "telling" style (e.g. "I've noticed you have some duplicated code here - if you had to change one copy of it you'd need to remember to change the other - how could you avoid that?" rather than "You should extract a function here")`,
+        `A detailed explanation of the issue you are giving feedback on. Explain in which case that issue becomes a problem, and how bad that problem will be. If you ask question to nudge trainee towards better practices, use a "teaching" style not a "telling" style (e.g. "I've noticed you have some duplicated code here - if you had to change one copy of it you'd need to remember to change the other - how could you avoid that?" rather than "You should extract a function here")`,
       ),
     line_numbers: z
       .array(z.string())
@@ -37,7 +37,7 @@ export const FeedbackPointSchema = z
       .min(1)
       .max(10)
       .describe(
-        "The severity of the feedback. The severity should be classified as: 1 — Cosmetic, 2 — Very Low,3 — Low,4 — Moderate-Low,5 — Moderate,6 — Moderate-High,7 — High,8 — Very High,9 — Critical,10 — Blocker",
+        "The severity of the feedback. The severity should be classified as: 1 — Cosmetic, 2 — Very Low, 3 — Low, 4 — Moderate-Low, 5 — Moderate, 6 — Moderate-High, 7 — High, 8 — Very High, 9 — Critical, 10 — Blocker",
       ),
   })
   .describe(

@@ -1,5 +1,6 @@
 import { AiResponse } from "./types/aiResponse.js";
 import type { PRFile } from "./types/githubTypes.js";
+import { getLineNumbers } from "./utils/extractReviewParams.js";
 
 /**
  * Extract the maximum line number from a patch by parsing the '@@' hunk headers.
@@ -38,30 +39,6 @@ function getMaxLineInPatch(patch: string | undefined): number {
 }
 
 /**
- * Parse a line_numbers string (e.g. "3,4,10-15") into an array of numbers.
- */
-function parseLineNumbers(lineNumbersStr: string): number[] {
-  const lines: number[] = [];
-  const parts = lineNumbersStr.split(",").map((s) => s.trim());
-
-  for (const part of parts) {
-    if (part.includes("-")) {
-      const [start, end] = part.split("-").map((s) => parseInt(s.trim(), 10));
-      for (let i = start; i <= end; i++) {
-        lines.push(i);
-      }
-    } else {
-      const num = parseInt(part, 10);
-      if (!isNaN(num)) {
-        lines.push(num);
-      }
-    }
-  }
-
-  return lines;
-}
-
-/**
  * Validate feedback points against the actual PR files.
  * Filters out points that reference:
  * - Files not in the PR
@@ -91,9 +68,9 @@ export function validateFeedbackPoints(
 
       // Check if all line numbers are valid
       const maxLine = fileLineMap.get(point.file_name)!;
-      const lines = parseLineNumbers(point.line_numbers);
+      const lines = getLineNumbers(point.line_numbers);
 
-      for (const lineNum of lines) {
+      for (const lineNum of lines[0]) {
         if (lineNum > maxLine || lineNum < 1) {
           console.log(
             `Filtering out feedback point: line ${lineNum} out of range [1-${maxLine}] for file "${point.file_name}"`,

@@ -11,7 +11,7 @@ const mockFeedback: AiResponse = {
       topics: [],
       summary: "summary",
       point: "description",
-      line_numbers: "10",
+      line_numbers: ["10"],
       severity: 1,
     },
   ],

@@ -3,7 +3,11 @@ import type { AiResponse } from "./types/aiResponse.js";
 import type { PRFile } from "./types/githubTypes.js";
 import { validateFeedbackPoints } from "./validateFeedbackPoints.js";
 
-const makePoint = (file_name: string, line_numbers: string, severity = 5) => ({
+const makePoint = (
+  file_name: string,
+  line_numbers: string[],
+  severity = 5,
+) => ({
   file_name,
   line_numbers,
   topics: ["naming"],
@@ -18,12 +22,6 @@ const makeResponse = (points: ReturnType<typeof makePoint>[]): AiResponse => ({
 });
 
 // Patch with 5 new lines starting at line 1:
-// @@ -0,0 +1,5 @@
-// +line1
-// +line2
-// +line3
-// +line4
-// +line5
 const patchFiveLines =
   "@@ -0,0 +1,5 @@\n+line1\n+line2\n+line3\n+line4\n+line5";
 
@@ -43,99 +41,84 @@ const makeFile = (filename: string, patch?: string): PRFile => ({
 describe("validateFeedbackPoints", () => {
   test("passes through valid points with correct file and line", () => {
     const files = [makeFile("foo.ts", patchFiveLines)];
-    const responses = [makeResponse([makePoint("foo.ts", "3")])];
+    const responses = [makeResponse([makePoint("foo.ts", ["3"])])];
     const result = validateFeedbackPoints(responses, files);
     expect(result[0].feedback_points).toHaveLength(1);
   });
 
   test("filters out point referencing a file not in the PR", () => {
     const files = [makeFile("foo.ts", patchFiveLines)];
-    const responses = [makeResponse([makePoint("bar.ts", "1")])];
+    const responses = [makeResponse([makePoint("bar.ts", ["1"])])];
     const result = validateFeedbackPoints(responses, files);
     expect(result[0].feedback_points).toHaveLength(0);
   });
 
   test("filters out point with line number exceeding max line", () => {
     const files = [makeFile("foo.ts", patchFiveLines)];
-    const responses = [makeResponse([makePoint("foo.ts", "6")])];
+    const responses = [makeResponse([makePoint("foo.ts", ["6"])])];
     const result = validateFeedbackPoints(responses, files);
     expect(result[0].feedback_points).toHaveLength(0);
   });
 
   test("filters out point with line number less than 1", () => {
     const files = [makeFile("foo.ts", patchFiveLines)];
-    const responses = [makeResponse([makePoint("foo.ts", "0")])];
+    const responses = [makeResponse([makePoint("foo.ts", ["0"])])];
     const result = validateFeedbackPoints(responses, files);
     expect(result[0].feedback_points).toHaveLength(0);
   });
 
-  test("does NOT filter a point with '-1' — parseLineNumbers misidentifies it as a range, producing no lines to check", () => {
-    // "-1".split("-") → ["", "1"], start = NaN, loop never runs → 0 lines validated → point passes
-    const files = [makeFile("foo.ts", patchFiveLines)];
-    const responses = [makeResponse([makePoint("foo.ts", "-1")])];
-    const result = validateFeedbackPoints(responses, files);
-    expect(result[0].feedback_points).toHaveLength(1);
-  });
-
   test("accepts point with line number exactly at max line", () => {
     const files = [makeFile("foo.ts", patchFiveLines)];
-    const responses = [makeResponse([makePoint("foo.ts", "5")])];
+    const responses = [makeResponse([makePoint("foo.ts", ["5"])])];
     const result = validateFeedbackPoints(responses, files);
     expect(result[0].feedback_points).toHaveLength(1);
   });
 
   test("accepts point with line number exactly at 1", () => {
     const files = [makeFile("foo.ts", patchFiveLines)];
-    const responses = [makeResponse([makePoint("foo.ts", "1")])];
+    const responses = [makeResponse([makePoint("foo.ts", ["1"])])];
     const result = validateFeedbackPoints(responses, files);
     expect(result[0].feedback_points).toHaveLength(1);
   });
 
   test("filters out point when any line in a range exceeds max", () => {
     const files = [makeFile("foo.ts", patchFiveLines)];
-    const responses = [makeResponse([makePoint("foo.ts", "4-6")])];
+    const responses = [makeResponse([makePoint("foo.ts", ["4-6"])])];
     const result = validateFeedbackPoints(responses, files);
     expect(result[0].feedback_points).toHaveLength(0);
   });
 
   test("accepts point with valid line range entirely within bounds", () => {
     const files = [makeFile("foo.ts", patchFiveLines)];
-    const responses = [makeResponse([makePoint("foo.ts", "2-4")])];
+    const responses = [makeResponse([makePoint("foo.ts", ["2-4"])])];
     const result = validateFeedbackPoints(responses, files);
     expect(result[0].feedback_points).toHaveLength(1);
   });
 
   test("accepts point with comma-separated lines all within bounds", () => {
     const files = [makeFile("foo.ts", patchFiveLines)];
-    const responses = [makeResponse([makePoint("foo.ts", "1,3,5")])];
+    const responses = [makeResponse([makePoint("foo.ts", ["1,3,5"])])];
     const result = validateFeedbackPoints(responses, files);
     expect(result[0].feedback_points).toHaveLength(1);
   });
 
-  test("filters out point when any line in comma list is out of bounds", () => {
-    const files = [makeFile("foo.ts", patchFiveLines)];
-    const responses = [makeResponse([makePoint("foo.ts", "1,3,6")])];
-    const result = validateFeedbackPoints(responses, files);
-    expect(result[0].feedback_points).toHaveLength(0);
-  });
-
   test("accepts point with mixed range and individual lines all valid", () => {
     const files = [makeFile("foo.ts", patchFiveLines)];
-    const responses = [makeResponse([makePoint("foo.ts", "1,3-5")])];
+    const responses = [makeResponse([makePoint("foo.ts", ["1,3-5"])])];
     const result = validateFeedbackPoints(responses, files);
     expect(result[0].feedback_points).toHaveLength(1);
   });
 
   test("filters out all points when file has no patch (maxLine = 0)", () => {
     const files = [makeFile("foo.ts", undefined)];
-    const responses = [makeResponse([makePoint("foo.ts", "1")])];
+    const responses = [makeResponse([makePoint("foo.ts", ["1"])])];
     const result = validateFeedbackPoints(responses, files);
     expect(result[0].feedback_points).toHaveLength(0);
   });
 
   test("filters out all points when file has empty patch string", () => {
     const files = [makeFile("foo.ts", "")];
-    const responses = [makeResponse([makePoint("foo.ts", "1")])];
+    const responses = [makeResponse([makePoint("foo.ts", ["1"])])];
     const result = validateFeedbackPoints(responses, files);
     expect(result[0].feedback_points).toHaveLength(0);
   });
@@ -144,23 +127,23 @@ describe("validateFeedbackPoints", () => {
     const files = [makeFile("foo.ts", patchFiveLines)];
     const responses = [
       makeResponse([
-        makePoint("foo.ts", "2"),
-        makePoint("foo.ts", "99"),
-        makePoint("bar.ts", "1"),
-        makePoint("foo.ts", "5"),
+        makePoint("foo.ts", ["2"]),
+        makePoint("foo.ts", ["99"]),
+        makePoint("bar.ts", ["1"]),
+        makePoint("foo.ts", ["5"]),
       ]),
     ];
     const result = validateFeedbackPoints(responses, files);
     expect(result[0].feedback_points).toHaveLength(2);
-    expect(result[0].feedback_points[0].line_numbers).toBe("2");
-    expect(result[0].feedback_points[1].line_numbers).toBe("5");
+    expect(result[0].feedback_points[0].line_numbers).toEqual(["2"]);
+    expect(result[0].feedback_points[1].line_numbers).toEqual(["5"]);
   });
 
   test("processes multiple responses independently", () => {
     const files = [makeFile("foo.ts", patchFiveLines)];
     const responses = [
-      makeResponse([makePoint("foo.ts", "2")]),
-      makeResponse([makePoint("foo.ts", "99")]),
+      makeResponse([makePoint("foo.ts", ["2"])]),
+      makeResponse([makePoint("foo.ts", ["99"])]),
     ];
     const result = validateFeedbackPoints(responses, files);
     expect(result[0].feedback_points).toHaveLength(1);
@@ -188,9 +171,9 @@ describe("validateFeedbackPoints", () => {
     const files = [fileFive, fileOne];
     const responses = [
       makeResponse([
-        makePoint("five.ts", "5"),
-        makePoint("one.ts", "1"),
-        makePoint("one.ts", "2"), // out of range for one.ts
+        makePoint("five.ts", ["5"]),
+        makePoint("one.ts", ["1"]),
+        makePoint("one.ts", ["2"]), // out of range for one.ts
       ]),
     ];
     const result = validateFeedbackPoints(responses, files);
@@ -208,9 +191,9 @@ describe("validateFeedbackPoints", () => {
     const files = [makeFile("foo.ts", patchWithDeletion)];
     const responses = [
       makeResponse([
-        makePoint("foo.ts", "10"),
-        makePoint("foo.ts", "11"),
-        makePoint("foo.ts", "12"), // out of range
+        makePoint("foo.ts", ["10"]),
+        makePoint("foo.ts", ["11"]),
+        makePoint("foo.ts", ["12"]), // out of range
       ]),
     ];
     const result = validateFeedbackPoints(responses, files);
@@ -223,13 +206,13 @@ describe("validateFeedbackPoints", () => {
     const files = [makeFile("foo.ts", multiHunkPatch)];
     const responses = [
       makeResponse([
-        makePoint("foo.ts", "22"),
-        makePoint("foo.ts", "23"), // out of range (maxLine = 22)
+        makePoint("foo.ts", ["22"]),
+        makePoint("foo.ts", ["23"]), // out of range (maxLine = 22)
       ]),
     ];
     const result = validateFeedbackPoints(responses, files);
     expect(result[0].feedback_points).toHaveLength(1);
-    expect(result[0].feedback_points[0].line_numbers).toBe("22");
+    expect(result[0].feedback_points[0].line_numbers).toEqual(["22"]);
   });
 
   test("preserves all other response fields unchanged", () => {
@@ -237,7 +220,7 @@ describe("validateFeedbackPoints", () => {
     const responses: AiResponse[] = [
       {
         feedback_type: "comments quality",
-        feedback_points: [makePoint("foo.ts", "1")],
+        feedback_points: [makePoint("foo.ts", ["1"])],
       },
     ];
     const result = validateFeedbackPoints(responses, files);

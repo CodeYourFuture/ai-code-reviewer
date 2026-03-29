@@ -12,7 +12,7 @@ export async function postInlineComments(
   commitId: string,
 ) {
   const points = review.feedback_points;
-  if (review.feedback_type === "comments quality" || points.length > 3) {
+  if (review.feedback_type === "comments quality" && points.length > 3) {
     await octokit.request(
       "POST /repos/{owner}/{repo}/pulls/{pull_number}/reviews",
       {

@@ -6,6 +6,7 @@ import { runAiReview } from "./networks/ai_api_request.js";
 import { getPRFiles, logPRFiles } from "./networks/github.js";
 import { postInlineComments } from "./networks/postInlineComment.js";
 import { postPRComment } from "./networks/postPrComment.js";
+import { validateFeedbackPoints } from "./validateFeedbackPoints.js";
 
 const messageForNewPRs = "Thanks for opening a new PR! AI started to review it";
 
@@ -40,16 +41,15 @@ export async function handleLabeled(
       const files = await getPRFiles(owner, repo, pullNumber, octokit);
       await logPRFiles(owner, repo, pullNumber, files);
       const aiReview = await runAiReview(files);
-      aiReview.forEach(async (review) => {
-        await postInlineComments(
-          owner,
-          repo,
-          pullNumber,
-          octokit,
-          review,
-          commitId,
-        );
-      });
+      const validatedReview = validateFeedbackPoints(aiReview, files);
+      await postInlineComments(
+        owner,
+        repo,
+        pullNumber,
+        octokit,
+        validatedReview,
+        commitId,
+      );
     } catch (error) {
       if (error instanceof RequestError) {
         if (error.response) {

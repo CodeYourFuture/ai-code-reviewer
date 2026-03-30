@@ -13,25 +13,51 @@ export const up = (pgm) => {
     id: { type: "bigserial primary key", notNull: true },
     prompt: "text",
   });
-  pgm.createTable("review_topics", {
+  pgm.createTable("prompt_review_topics", {
     id: { type: "bigserial primary key", notNull: true },
     topics: "text",
   });
 
-  pgm.createTable("reviews", {
+  pgm.createTable("ai_feedback_points", {
     id: { type: "bigserial primary key", notNull: true },
-    ai_review: "text",
+    feedback_type: {
+      type: "text",
+      notNull: true,
+    },
+    file_name: {
+      type: "text",
+      notNull: true,
+    },
+    review_topic: {
+      type: "text",
+      notNull: true,
+    },
+    point: {
+      type: "text",
+      notNull: true,
+    },
+    line_number: {
+      type: "text",
+      notNull: true,
+    },
+    severity: {
+      type: "integer",
+      notNull: true,
+    },
     commit_sha: { type: "varchar(50)", notNull: true },
     llm_model: "varchar",
     prompt_id: { type: "bigint", references: "prompts(id)" },
-    review_topics_id: { type: "bigint", references: "review_topics(id)" },
+    review_topics_id: {
+      type: "bigint",
+      references: "prompt_review_topics(id)",
+    },
   });
 
   pgm.createTable("user_feedback", {
     id: { type: "bigserial primary key", notNull: true },
-    ai_review_id: { type: "bigint", references: "reviews(id)" },
+    ai_review_id: { type: "bigint", references: "ai_feedback_points(id)" },
     username_github: "text",
-    //feedback
+    //user feedback: (I'm not sure how it will look like for now)
   });
 };
 
@@ -42,7 +68,7 @@ export const up = (pgm) => {
  */
 export const down = (pgm) => {
   pgm.dropTable("user_feedback");
-  pgm.dropTable("reviews");
-  pgm.dropTable("review_topics");
+  pgm.dropTable("ai_feedback_points");
+  pgm.dropTable("prompt_review_topics");
   pgm.dropTable("prompts");
 };

@@ -1,3 +1,4 @@
+import { storeReview } from "../db/storeReview.js";
 import {
   MODEL,
   codeQualityPrompt,
@@ -13,3 +14,4 @@ const files: PRFile[] = data as PRFile[];
 const prompts = [codeQualityPrompt, commentQualityPrompt];
 const review = await runAiReview(files);
 formAiOutputDataObject(defaultChatParameters, MODEL, prompts, review);
+storeReview();

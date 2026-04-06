@@ -11,6 +11,7 @@ import { buildPRReviewPrompt } from "../utils/buildPRReviewPrompt.js";
 import { getSchema } from "../utils/responseSchemas/getSchema.js";
 import { badCommentsPrompt, basePrompt, topics } from "./ai/prompt.js";
 import { askOpenRouterWithValidation } from "./ai/retryWithValidation.js";
+import { validateFeedbackPoints } from "../validateFeedbackPoints.js";
 
 const openRouter = new OpenRouter({
   apiKey: env.OPENROUTER_API_KEY,
@@ -97,20 +98,50 @@ export async function runAiReview(files: PRFile[]): Promise<AiResponse[]> {
     }
   });
   const SEVERITY_THRESHOLD = 2;
-  combinedReview
-    .filter((review) => review.feedback_type != "comments quality")
-    .forEach(
-      (review) =>
-        (review.feedback_points = review.feedback_points.filter(
-          (point) => point.severity > SEVERITY_THRESHOLD,
-        )),
-    );
-  combinedReview.forEach((review) => removeAdditionalLineNumbers(review));
+  combinedReview.forEach((review) => {
+    if (review.feedback_type != "comments quality") {
+      review.feedback_points = review.feedback_points.filter(
+        (point) => point.severity > SEVERITY_THRESHOLD,
+      );
+    }
+  });
+  console.log(
+    "✅ Severity filtering completed. Combined review now has",
+    combinedReview.length,
+    "responses",
+  );
+  if (combinedReview.some((response) => response.feedback_points.length > 0)) {
+    combinedReview.forEach((review) => removeAdditionalLineNumbers(review));
+  }
+  console.log("✅ Line number removal completed");
   console.log("\n================ PR REVIEW ================\n");
   console.log(JSON.stringify(combinedReview, null, 2));
   console.log("\n==========================================\n");
-
-  return combinedReview;
+  const validatedReview = validateFeedbackPoints(combinedReview, files);
+  console.log(
+    "✅ Validation completed. Validated review has",
+    validatedReview.length,
+    "responses",
+  );
+  //I put this condition here because sha can be string | null
+  //commented out because I don't have db currently
+  // if (
+  //   files[0].sha &&
+  //   validatedReview.some((response) => response.feedback_points.length > 0)
+  // ) {
+  //   console.log("📝 Storing review to database...");
+  //   storeReview(
+  //     validatedReview,
+  //     MODEL,
+  //     files[0].sha,
+  //     [basePrompt, commentQualityPrompt],
+  //     [topics],
+  //   );
+  // } else {
+  //   console.log("No review to store");
+  // }
+  console.log("🏁 runAiReview completed");
+  return validatedReview;
 }
 export function removeAdditionalLineNumbers(review: AiResponse): AiResponse {
   const sanitisedLineNumbers = review.feedback_points.map((point) => {

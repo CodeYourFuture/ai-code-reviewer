@@ -6,9 +6,10 @@ import { runAiReview } from "./networks/ai_api_request.js";
 import { getPRFiles, logPRFiles } from "./networks/github.js";
 import { postInlineComments } from "./networks/postInlineComment.js";
 import { postPRComment } from "./networks/postPrComment.js";
-import { validateFeedbackPoints } from "./validateFeedbackPoints.js";
 
 const messageForNewPRs = "Thanks for opening a new PR! AI started to review it";
+const messageWhenNoFeedback =
+  "Your code is ready to be reviewed by a volunteer";
 
 export async function handleLabeled(
   event: EmitterWebhookEvent<"pull_request.labeled"> & { octokit: Octokit },
@@ -41,15 +42,24 @@ export async function handleLabeled(
       const files = await getPRFiles(owner, repo, pullNumber, octokit);
       await logPRFiles(owner, repo, pullNumber, files);
       const aiReview = await runAiReview(files);
-      const validatedReview = validateFeedbackPoints(aiReview, files);
-      await postInlineComments(
-        owner,
-        repo,
-        pullNumber,
-        octokit,
-        validatedReview,
-        commitId,
-      );
+      if (aiReview.some((response) => response.feedback_points.length > 0)) {
+        await postInlineComments(
+          owner,
+          repo,
+          pullNumber,
+          octokit,
+          aiReview,
+          commitId,
+        );
+      } else {
+        await postPRComment({
+          owner,
+          repo,
+          pullNumber,
+          body: messageWhenNoFeedback,
+          octokit,
+        });
+      }
     } catch (error) {
       if (error instanceof RequestError) {
         if (error.response) {

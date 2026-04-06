@@ -11,6 +11,8 @@ import { buildPRReviewPrompt } from "../utils/buildPRReviewPrompt.js";
 import { getSchema } from "../utils/responseSchemas/getSchema.js";
 import { badCommentsPrompt, basePrompt, topics } from "./ai/prompt.js";
 import { askOpenRouterWithValidation } from "./ai/retryWithValidation.js";
+import { validateFeedbackPoints } from "../validateFeedbackPoints.js";
+import { storeReview } from "../db/storeReview.js";
 
 const openRouter = new OpenRouter({
   apiKey: env.OPENROUTER_API_KEY,
@@ -109,8 +111,18 @@ export async function runAiReview(files: PRFile[]): Promise<AiResponse[]> {
   console.log("\n================ PR REVIEW ================\n");
   console.log(JSON.stringify(combinedReview, null, 2));
   console.log("\n==========================================\n");
-
-  return combinedReview;
+  const validatedReview = validateFeedbackPoints(combinedReview, files);
+  //I put this condition here because sha can be string | null
+  if (files[0].sha) {
+    storeReview(
+      validatedReview,
+      MODEL,
+      files[0].sha,
+      [basePrompt, commentQualityPrompt],
+      [topics],
+    );
+  }
+  return validatedReview;
 }
 export function removeAdditionalLineNumbers(review: AiResponse): AiResponse {
   const sanitisedLineNumbers = review.feedback_points.map((point) => {

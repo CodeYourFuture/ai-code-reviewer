@@ -14,7 +14,6 @@ interface FeedbackPointData {
   review_topics_id?: number | null;
 }
 
-
 export const getOrCreatePromptId = async (prompt: string): Promise<number> => {
   const selectQuery = "SELECT id FROM prompts WHERE prompt = $1 LIMIT 1";
   const insertQuery = "INSERT INTO prompts (prompt) VALUES ($1) RETURNING id";
@@ -79,18 +78,16 @@ export const storeReview = async (
   model: string,
   commit_sha: string,
   prompts: string[],
-  topics: string[],
+  topics: string[][],
 ) => {
-
   for (const feedback of review) {
     const feedbackIndex = review.indexOf(feedback);
     const prompt_id = await getOrCreatePromptId(prompts[feedbackIndex]);
-    const review_topics_id = topics
-      ? await getOrCreateReviewTopicsId(topics)
+    const review_topics_id = topics[feedbackIndex]
+      ? await getOrCreateReviewTopicsId(topics[feedbackIndex])
       : null;
 
     for (const point of feedback.feedback_points) {
-      // const review_topics_id = await getOrCreateReviewTopicsId(point.topics);
       const feedbackPointData: FeedbackPointData = {
         feedback_type: feedback.feedback_type,
         file_name: point.file_name,

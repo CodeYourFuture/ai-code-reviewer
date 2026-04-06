@@ -7,6 +7,7 @@ export function buildPRReviewPrompt(params: { files: PRFile[] }) {
   const filesText = files
     .map((f) => {
       if (typeof f.patch === "string") {
+        f.patch = clearDefaultComments(f.patch);
         f.patch = addLineNumbers(f.patch);
       }
 
@@ -24,4 +25,18 @@ Review this GitHub Pull Request.
 Changed files:
 ${filesText}
 `;
+}
+function clearDefaultComments(patch: string): string {
+  const patchWithRemovedComments = patch
+    .split("\n")
+    .map((line) => {
+      if (line.startsWith(" //")) {
+        line = "  ";
+        return line;
+      } else {
+        return line;
+      }
+    })
+    .join("\n");
+  return patchWithRemovedComments;
 }

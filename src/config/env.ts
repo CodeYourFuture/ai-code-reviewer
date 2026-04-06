@@ -18,10 +18,7 @@ const envSchema = z.object({
   OPENROUTER_API_KEY: z.string().min(1),
 
   // Database
-  DATABASE_USER: z.string().min(1),
-  DATABASE_PASSWORD: z.string().min(1),
-  DATABASE_NAME: z.string().min(1),
-  DATABASE_URL: z.string().optional(),
+  DATABASE_URL: z.string(),
 });
 
 const parsed = envSchema.safeParse(process.env);

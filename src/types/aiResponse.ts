@@ -29,7 +29,7 @@ export const FeedbackPointSchema = z
       .array(z.string())
       .max(1)
       .describe(
-        "The line numbers in the code where the feedback applies. Denoted as an individual number or range of numbers (e.g. ['3'] or ['10-15'])",
+        "The line numbers in the code where the feedback applies. Denoted as an individual number or range of numbers (e.g. ['3'] or ['10-15'], but not ['5-6,15-16,25-26,31-32'])",
       ),
     severity: z
       .number()

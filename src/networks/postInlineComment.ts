@@ -11,11 +11,14 @@ export async function postInlineComments(
   review: AiResponse[],
   commitId: string,
 ) {
-  const codeQualityReview = review.find(
+  const commentsQualityReview = review.find(
     (reviewType) => reviewType.feedback_type === "comments quality",
   );
 
-  if (codeQualityReview && codeQualityReview.feedback_points.length > 3) {
+  if (
+    commentsQualityReview &&
+    commentsQualityReview.feedback_points.length > 3
+  ) {
     review = review.filter(
       (feedback) => feedback.feedback_type != "comments quality",
     );

@@ -54,7 +54,6 @@ vi.mock("./networks/ai_api_request.js", () => ({
         {
           file_name: "file1.js",
           topics: ["bad naming"],
-          summary: "Variable name could be clearer",
           point: "Consider renaming this variable",
           line_numbers: ["8"],
           severity: 4,
@@ -62,7 +61,6 @@ vi.mock("./networks/ai_api_request.js", () => ({
         {
           file_name: "file2.js",
           topics: ["duplicated code"],
-          summary: "Code is repeated",
           point: "Extract this into a function",
           line_numbers: ["1-3"],
           severity: 4,
@@ -112,7 +110,6 @@ describe("handleLabeled", () => {
             {
               file_name: "file1.js",
               topics: ["bad naming"],
-              summary: "Variable name could be clearer",
               point: "Consider renaming this variable",
               line_numbers: ["8"],
               severity: 4,
@@ -120,7 +117,6 @@ describe("handleLabeled", () => {
             {
               file_name: "file2.js",
               topics: ["duplicated code"],
-              summary: "Code is repeated",
               point: "Extract this into a function",
               line_numbers: ["1-3"],
               severity: 4,

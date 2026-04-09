@@ -15,11 +15,6 @@ export const FeedbackPointSchema = z
       .describe(
         "The list of topics from the prompt used to evaluate the issue. If same issue falls under several topic, list them all",
       ),
-    summary: z
-      .string()
-      .describe(
-        "A very short summary of the problem, explained in the context of a beginner coder",
-      ),
     point: z
       .string()
       .describe(

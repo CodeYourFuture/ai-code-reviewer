@@ -8,7 +8,6 @@ const review: AiResponse = {
     {
       file_name: "file1.js",
       topics: ["bad naming"],
-      summary: "Variable name could be clearer",
       point: "Consider renaming this variable",
       line_numbers: ["3-9,11-23,17-21"],
       severity: 4,
@@ -16,7 +15,6 @@ const review: AiResponse = {
     {
       file_name: "file2.js",
       topics: ["duplicated code"],
-      summary: "Code is repeated",
       point: "Extract this into a function",
       line_numbers: ["3-9, 11-23, 17-21"],
       severity: 4,

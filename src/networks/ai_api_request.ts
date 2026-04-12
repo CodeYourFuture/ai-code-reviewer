@@ -97,14 +97,15 @@ export async function runAiReview(files: PRFile[]): Promise<AiResponse[]> {
       combinedReview.push(feedback);
     }
   });
-  const SEVERITY_THRESHOLD = 2;
-  combinedReview.forEach((review) => {
-    if (review.feedback_type != "comments quality") {
-      review.feedback_points = review.feedback_points.filter(
-        (point) => point.severity > SEVERITY_THRESHOLD,
-      );
-    }
-  });
+  //commented out to test only code quality feedback with one topic
+  // const SEVERITY_THRESHOLD = 2;
+  // combinedReview.forEach((review) => {
+  //   if (review.feedback_type != "comments quality") {
+  //     review.feedback_points = review.feedback_points.filter(
+  //       (point) => point.severity > SEVERITY_THRESHOLD,
+  //     );
+  //   }
+  // });
   console.log(
     "✅ Severity filtering completed. Combined review now has",
     combinedReview.length,

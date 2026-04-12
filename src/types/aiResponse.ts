@@ -3,7 +3,7 @@ import { z } from "zod";
 // If you declare your string array as a variable, Zod won't be able to properly infer the exact values of each element
 // To fix this, always pass the array directly into the z.enum() function, or use as const.
 // https://zod.dev/api?id=enums
-export const FEEDBACK_TYPES = ["code quality", "comments quality"] as const;
+export const FEEDBACK_TYPES = ["code quality"] as const;
 
 export const FeedbackPointSchema = z
   .object({

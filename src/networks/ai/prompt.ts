@@ -18,11 +18,11 @@ You MUST evaluate the code against EVERY topic listed`;
 
 export const topics: string[] = [
   "Duplicated code which can be moved into functions so they can be referenced from multiple places",
-  "More than 6 levels of Deep Nesting",
-  "Returning true or false from a condition, e.g `if (someExpression) { return true; } else { return false; }`",
-  "Variables that are incorrectly scoped causing bugs",
-  "Making temporary variables which could be directly returned without improved clarity",
-  "Bad naming that deceives the reader about what variable stores or function logic ",
+  // "More than 6 levels of Deep Nesting",
+  // "Returning true or false from a condition, e.g `if (someExpression) { return true; } else { return false; }`",
+  // "Variables that are incorrectly scoped causing bugs",
+  // "Making temporary variables which could be directly returned without improved clarity",
+  // "Bad naming that deceives the reader about what variable stores or function logic ",
 ];
 
 export const badCommentsPrompt: string = `

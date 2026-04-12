@@ -17,7 +17,8 @@ const openRouter = new OpenRouter({
   apiKey: env.OPENROUTER_API_KEY,
 });
 // const FreeModel = "arcee-ai/trinity-large-preview:free";
-export const MODEL = "gpt-4.1";
+// export const MODEL = "gpt-4.1";
+export const MODEL = "openai/gpt-5.1";
 export const codeQualityPrompt = `${basePrompt}
         Topics are: \n- ${topics.join(`\n- `)}`;
 export const commentQualityPrompt = badCommentsPrompt;
@@ -97,14 +98,14 @@ export async function runAiReview(files: PRFile[]): Promise<AiResponse[]> {
       combinedReview.push(feedback);
     }
   });
-  const SEVERITY_THRESHOLD = 2;
-  combinedReview.forEach((review) => {
-    if (review.feedback_type != "comments quality") {
-      review.feedback_points = review.feedback_points.filter(
-        (point) => point.severity > SEVERITY_THRESHOLD,
-      );
-    }
-  });
+  // const SEVERITY_THRESHOLD = 2;
+  // combinedReview.forEach((review) => {
+  //   if (review.feedback_type != "comments quality") {
+  //     review.feedback_points = review.feedback_points.filter(
+  //       (point) => point.severity > SEVERITY_THRESHOLD,
+  //     );
+  //   }
+  // });
   console.log(
     "✅ Severity filtering completed. Combined review now has",
     combinedReview.length,

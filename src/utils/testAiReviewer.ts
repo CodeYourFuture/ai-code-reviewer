@@ -6,7 +6,7 @@
 //   runAiReview,
 // } from "../networks/ai_api_request.js";
 // import { PRFile } from "../types/githubTypes.js";
-// import data from "../utils/sampleOutput/output2.json" with { type: "json" };
+// import data from "../utils/sampleOutput/output6.json" with { type: "json" };
 // import { formAiOutputDataObject } from "./storeAiReviewData.js";
 
 // const files: PRFile[] = data as PRFile[];

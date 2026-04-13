@@ -43,24 +43,7 @@ export const AiResponseSchema = z.object({
   feedback_type: z.enum(FEEDBACK_TYPES),
   feedback_points: z.array(FeedbackPointSchema),
 });
-//currently not in use
-export const CommentPointSchema = z
-  .object({
-    file_name: z
-      .string()
-      .describe("The name of the file where the feedback applies."),
-    point: z
-      .string()
-      .describe(
-        `A detailed explanation of the issue you are giving feedback on. If you ask question to nudge trainee towards better practices, use a "teaching" style not a "telling" style (e.g. "I've noticed you have some duplicated code here - if you had to change one copy of it you'd need to remember to change the other - how could you avoid that?" rather than "You should extract a function here")`,
-      ),
-    line_numbers: z
-      .string()
-      .describe(
-        "The line numbers in the code where the feedback applies. If issue lies in several location within one function, return one line range that covers both issues. When referring to bad naming, only return line numbers where that naming declared. Denoted as a comma separated list, with individual numbers or ranges of numbers (e.g. 3,4,10-15)",
-      ),
-  })
-  .describe("A collection of feedback points.");
+
 // Always create a TypeScript type from the schema using z.infer.
 export type AiResponse = z.infer<typeof AiResponseSchema>;
 export type FeedbackPoint = z.infer<typeof FeedbackPointSchema>;

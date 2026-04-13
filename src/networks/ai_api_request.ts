@@ -17,7 +17,7 @@ const openRouter = new OpenRouter({
   apiKey: env.OPENROUTER_API_KEY,
 });
 // const FreeModel = "arcee-ai/trinity-large-preview:free";
-export const MODEL = "gpt-4.1";
+export const MODEL = "openai/gpt-5.1";
 export const codeQualityPrompt = `${basePrompt}
         Topics are: \n- ${topics.join(`\n- `)}`;
 export const commentQualityPrompt = badCommentsPrompt;

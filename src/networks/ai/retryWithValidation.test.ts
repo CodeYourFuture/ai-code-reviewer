@@ -1,22 +1,22 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { FeedbackResponse } from "../../types/aiResponse.js";
+import type { AiResponse } from "../../types/aiResponse.js";
 import * as aiModule from "../ai_api_request.js";
-import { retryWithValidation } from "./retryWithValidation.js";
+import { askOpenRouterWithValidation } from "./retryWithValidation.js";
 
-const mockFeedback: FeedbackResponse = {
+const mockFeedback: AiResponse = {
+  feedback_type: "code quality",
   feedback_points: [
     {
       file_name: "file.ts",
-      summary: "summary",
-      description: "description",
-      questions: "question",
-      line_numbers: "10",
+      topics: [],
+      point: "description",
+      line_numbers: ["10"],
       severity: 1,
     },
   ],
 };
 
-describe("retryWithValidation", () => {
+describe("askOpenRouterWithValidation", () => {
   beforeEach(() => {
     vi.restoreAllMocks();
   });
@@ -24,26 +24,13 @@ describe("retryWithValidation", () => {
   it("calls aiCall only once when response is valid", async () => {
     const prompt = "test prompt";
 
-    const mockFeedback: FeedbackResponse = {
-      feedback_points: [
-        {
-          file_name: "file.ts",
-          summary: "summary",
-          description: "description",
-          questions: "question",
-          line_numbers: "10",
-          severity: 1,
-        },
-      ],
-    };
-
     const aiSpy = vi.spyOn(aiModule, "aiCall").mockResolvedValue("mock-json");
 
     const validateSpy = vi
-      .spyOn(aiModule, "validateFeedbackResponse")
+      .spyOn(aiModule, "validateAiResponse")
       .mockReturnValue(mockFeedback);
 
-    const result = await retryWithValidation(prompt);
+    const result = await askOpenRouterWithValidation(prompt, "code quality");
 
     expect(result).toEqual(mockFeedback);
     expect(aiSpy).toHaveBeenCalledTimes(1);
@@ -56,13 +43,13 @@ describe("retryWithValidation", () => {
     const aiSpy = vi.spyOn(aiModule, "aiCall").mockResolvedValue("mock-json");
 
     const validateSpy = vi
-      .spyOn(aiModule, "validateFeedbackResponse")
+      .spyOn(aiModule, "validateAiResponse")
       .mockImplementationOnce(() => {
         throw new Error("Invalid schema");
       })
       .mockReturnValueOnce(mockFeedback);
 
-    const result = await retryWithValidation(prompt);
+    const result = await askOpenRouterWithValidation(prompt, "code quality");
 
     expect(result).toEqual(mockFeedback);
     expect(aiSpy).toHaveBeenCalledTimes(2);
@@ -74,13 +61,13 @@ describe("retryWithValidation", () => {
 
     const aiSpy = vi.spyOn(aiModule, "aiCall").mockResolvedValue("mock-json");
 
-    vi.spyOn(aiModule, "validateFeedbackResponse").mockImplementation(() => {
+    vi.spyOn(aiModule, "validateAiResponse").mockImplementation(() => {
       throw new Error("Invalid schema");
     });
 
-    await expect(retryWithValidation(prompt, 1)).rejects.toThrow(
-      "Invalid schema",
-    );
+    await expect(
+      askOpenRouterWithValidation(prompt, "code quality"),
+    ).rejects.toThrow("Invalid schema");
 
     expect(aiSpy).toHaveBeenCalledTimes(2);
   });

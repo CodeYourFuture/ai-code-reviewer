@@ -13,10 +13,6 @@ export const up = (pgm) => {
     id: { type: "bigserial primary key", notNull: true },
     prompt: "text",
   });
-  pgm.createTable("prompt_review_topics", {
-    id: { type: "bigserial primary key", notNull: true },
-    topics: "text",
-  });
 
   pgm.createTable("ai_feedback_points", {
     id: { type: "bigserial primary key", notNull: true },
@@ -47,10 +43,6 @@ export const up = (pgm) => {
     commit_sha: { type: "varchar(50)", notNull: true },
     llm_model: "varchar",
     prompt_id: { type: "bigint", references: "prompts(id)" },
-    review_topics_id: {
-      type: "bigint",
-      references: "prompt_review_topics(id)",
-    },
   });
 
   pgm.createTable("user_feedback", {
@@ -69,6 +61,5 @@ export const up = (pgm) => {
 export const down = (pgm) => {
   pgm.dropTable("user_feedback");
   pgm.dropTable("ai_feedback_points");
-  pgm.dropTable("prompt_review_topics");
   pgm.dropTable("prompts");
 };

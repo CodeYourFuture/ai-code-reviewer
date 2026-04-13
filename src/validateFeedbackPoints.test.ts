@@ -11,7 +11,6 @@ const makePoint = (
   file_name,
   line_numbers,
   topics: ["naming"],
-  summary: "A summary",
   point: "A point",
   severity,
 });

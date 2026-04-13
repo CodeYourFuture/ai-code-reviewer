@@ -18,7 +18,7 @@ const openRouter = new OpenRouter({
   apiKey: env.OPENROUTER_API_KEY,
 });
 // const FreeModel = "arcee-ai/trinity-large-preview:free";
-export const MODEL = "gpt-4.1";
+export const MODEL = "openai/gpt-5.1";
 export const codeQualityPrompt = `${basePrompt}
         Topics are: \n- ${topics.join(`\n- `)}`;
 export const commentQualityPrompt = badCommentsPrompt;
@@ -86,7 +86,7 @@ export async function runAiReview(files: PRFile[]): Promise<AiResponse[]> {
   });
   console.log("--------- CODE --------\n", code);
   console.log("\n🤖 Sending PR diff to OpenRouter for review...\n");
-  const combinedReview: AiResponse[] = [];
+  let combinedReview: AiResponse[] = [];
   const feedbackPromises = FEEDBACK_TYPES.map((type) =>
     askOpenRouterWithValidation(code, type),
   );
@@ -112,7 +112,7 @@ export async function runAiReview(files: PRFile[]): Promise<AiResponse[]> {
     "responses",
   );
   if (combinedReview.some((response) => response.feedback_points.length > 0)) {
-    combinedReview.forEach((review) => removeAdditionalLineNumbers(review));
+    combinedReview = combinedReview.map(removeAdditionalLineNumbers);
   }
   console.log("✅ Line number removal completed");
   console.log("\n================ PR REVIEW ================\n");
@@ -146,7 +146,7 @@ export async function runAiReview(files: PRFile[]): Promise<AiResponse[]> {
 export function removeAdditionalLineNumbers(review: AiResponse): AiResponse {
   const sanitisedLineNumbers = review.feedback_points.map((point) => {
     if (point.line_numbers[0].includes(",")) {
-      point.line_numbers[0] = point.line_numbers[0].split(", ")[0];
+      point.line_numbers[0] = point.line_numbers[0].split(",")[0];
     }
     return point;
   });

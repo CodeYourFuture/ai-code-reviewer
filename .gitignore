@@ -5,3 +5,4 @@ node_modules
 dist
 sampleOutput
 sampleAiOutput
+.DS_Store

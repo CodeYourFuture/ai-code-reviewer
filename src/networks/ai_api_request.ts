@@ -130,13 +130,10 @@ export async function runAiReview(files: PRFile[]): Promise<AiResponse[]> {
     validatedReview.some((response) => response.feedback_points.length > 0)
   ) {
     console.log("📝 Storing review to database...");
-    storeReview(
-      validatedReview,
-      MODEL,
-      files[0].sha,
-      [basePrompt, commentQualityPrompt],
-      [topics],
-    );
+    storeReview(validatedReview, MODEL, files[0].sha, [
+      codeQualityPrompt,
+      commentQualityPrompt,
+    ]);
   } else {
     console.log("No review to store");
   }

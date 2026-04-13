@@ -43,7 +43,6 @@ export const AiResponseSchema = z.object({
   feedback_type: z.enum(FEEDBACK_TYPES),
   feedback_points: z.array(FeedbackPointSchema),
 });
-
 // Always create a TypeScript type from the schema using z.infer.
 export type AiResponse = z.infer<typeof AiResponseSchema>;
 export type FeedbackPoint = z.infer<typeof FeedbackPointSchema>;

@@ -12,6 +12,7 @@ import { getSchema } from "../utils/responseSchemas/getSchema.js";
 import { badCommentsPrompt, basePrompt, topics } from "./ai/prompt.js";
 import { askOpenRouterWithValidation } from "./ai/retryWithValidation.js";
 import { validateFeedbackPoints } from "../validateFeedbackPoints.js";
+import { storeReview } from "../db/storeReview.js";
 
 const openRouter = new OpenRouter({
   apiKey: env.OPENROUTER_API_KEY,
@@ -124,22 +125,18 @@ export async function runAiReview(files: PRFile[]): Promise<AiResponse[]> {
     "responses",
   );
   //I put this condition here because sha can be string | null
-  //commented out because I don't have db currently
-  // if (
-  //   files[0].sha &&
-  //   validatedReview.some((response) => response.feedback_points.length > 0)
-  // ) {
-  //   console.log("📝 Storing review to database...");
-  //   storeReview(
-  //     validatedReview,
-  //     MODEL,
-  //     files[0].sha,
-  //     [basePrompt, commentQualityPrompt],
-  //     [topics],
-  //   );
-  // } else {
-  //   console.log("No review to store");
-  // }
+  if (
+    files[0].sha &&
+    validatedReview.some((response) => response.feedback_points.length > 0)
+  ) {
+    console.log("📝 Storing review to database...");
+    storeReview(validatedReview, MODEL, files[0].sha, [
+      codeQualityPrompt,
+      commentQualityPrompt,
+    ]);
+  } else {
+    console.log("No review to store");
+  }
   console.log("🏁 runAiReview completed");
   return validatedReview;
 }

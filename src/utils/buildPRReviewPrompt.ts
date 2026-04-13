@@ -7,6 +7,7 @@ export function buildPRReviewPrompt(params: { files: PRFile[] }) {
   const filesText = files
     .map((f) => {
       if (typeof f.patch === "string") {
+        f.patch = clearDefaultComments(f.patch);
         f.patch = addLineNumbers(f.patch);
       }
 
@@ -25,9 +26,17 @@ Changed files:
 ${filesText}
 `;
 }
-
-// Instructions:
-// - Identify bugs, edge cases, security issues, and performance issues.
-// - Suggest improvements and best practices.
-// - If a patch is missing, mention what additional context is needed.
-// - Provide a final summary + checklist.
+function clearDefaultComments(patch: string): string {
+  const patchWithRemovedComments = patch
+    .split("\n")
+    .map((line) => {
+      if (line.startsWith(" //")) {
+        line = "  ";
+        return line;
+      } else {
+        return line;
+      }
+    })
+    .join("\n");
+  return patchWithRemovedComments;
+}

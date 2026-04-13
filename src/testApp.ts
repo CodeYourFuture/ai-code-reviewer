@@ -2,8 +2,8 @@ import { App } from "octokit";
 import { env, privateKey } from "./config/env.js";
 
 // I have to manually point to the repo on which PRs app should comment
-const owner = "Droid-An";
-const repo = "Module-Data-Flows";
+const owner = "CodeYourFuture";
+const repo = "Module-Tools-Mirror-For-AI-Code-Reviewer-Testing";
 const app = new App({
   appId: env.APP_ID,
   privateKey: privateKey,

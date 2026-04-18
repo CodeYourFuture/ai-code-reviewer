@@ -6,6 +6,7 @@ import { runAiReview } from "./networks/ai_api_request.js";
 import { getPRFiles, logPRFiles } from "./networks/github.js";
 import { postInlineComments } from "./networks/postInlineComment.js";
 import { postPRComment } from "./networks/postPrComment.js";
+import { AiResponseWithId } from "./types/aiResponse.js";
 
 const messageForNewPRs = "Thanks for opening a new PR! AI started to review it";
 const messageWhenNoFeedback =
@@ -21,7 +22,10 @@ export async function handleLabeled(
     `Received a "labeled" event for PR #${payload.pull_request.number}`,
   );
 
-  if (process.env.NODE_ENV === 'production' && !(await checkMembershipForUser(payload.sender.login, octokit))) {
+  if (
+    process.env.NODE_ENV === "production" &&
+    !(await checkMembershipForUser(payload.sender.login, octokit))
+  ) {
     console.log("sender isn't a member of cyf");
     return;
   }
@@ -42,7 +46,7 @@ export async function handleLabeled(
       });
       const files = await getPRFiles(owner, repo, pullNumber, octokit);
       await logPRFiles(owner, repo, pullNumber, files);
-      const aiReview = await runAiReview(files);
+      const aiReview: AiResponseWithId[] = await runAiReview(files);
       if (aiReview.some((response) => response.feedback_points.length > 0)) {
         await postInlineComments(
           owner,

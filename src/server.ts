@@ -14,3 +14,13 @@ server.use(express.json());
 server.listen(env.PORT, () => {
   console.log(`Server running on port ${env.PORT}`);
 });
+
+server.get("/health", (_, res) => {
+  res.json({ status: "ok", message: "Server is healthy" });
+});
+
+server.get("/like/:id", (req, res) => {
+  const { id } = req.params;
+  console.log(id);
+  res.json({ message: `sent your like to the post with id ${id}` });
+});

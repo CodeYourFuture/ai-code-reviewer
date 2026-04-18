@@ -1,4 +1,8 @@
-import { AiResponse } from "../types/aiResponse.js";
+import {
+  AiResponse,
+  AiResponseWithId,
+  FeedbackPointSchema,
+} from "../types/aiResponse.js";
 import pool from "./db.js";
 
 interface FeedbackPointData {
@@ -58,10 +62,14 @@ export const storeReview = async (
   model: string,
   commit_sha: string,
   prompts: string[],
-) => {
-  for (const feedback of review) {
-    const feedbackIndex = review.indexOf(feedback);
+): Promise<AiResponseWithId[]> => {
+  const feedbackWithId: AiResponseWithId[] = [];
+
+  for (let feedbackIndex = 0; feedbackIndex < review.length; feedbackIndex++) {
+    const feedback = review[feedbackIndex];
+
     const prompt_id = await getOrCreatePromptId(prompts[feedbackIndex]);
+    const updatedPoints = [];
 
     for (const point of feedback.feedback_points) {
       const feedbackPointData: FeedbackPointData = {
@@ -76,7 +84,19 @@ export const storeReview = async (
         prompt_id,
       };
 
-      await addFeedbackPoint(feedbackPointData);
+      const feedbackPointId = await addFeedbackPoint(feedbackPointData);
+
+      updatedPoints.push({
+        ...point,
+        point_id: feedbackPointId,
+      });
     }
+
+    feedbackWithId.push({
+      feedback_type: feedback.feedback_type,
+      feedback_points: updatedPoints,
+    });
   }
+
+  return feedbackWithId;
 };

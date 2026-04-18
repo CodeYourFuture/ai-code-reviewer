@@ -4,6 +4,7 @@ import { env } from "../config/env.js";
 import {
   AiResponse,
   AiResponseSchema,
+  AiResponseWithId,
   FEEDBACK_TYPES,
 } from "../types/aiResponse.js";
 import { PRFile } from "../types/githubTypes.js";
@@ -80,7 +81,9 @@ export function validateAiResponse(response: string): AiResponse {
   return AiResponseSchema.parse(parsed);
 }
 
-export async function runAiReview(files: PRFile[]): Promise<AiResponse[]> {
+export async function runAiReview(
+  files: PRFile[],
+): Promise<AiResponseWithId[]> {
   const code = buildPRReviewPrompt({
     files,
   });
@@ -124,13 +127,14 @@ export async function runAiReview(files: PRFile[]): Promise<AiResponse[]> {
     validatedReview.length,
     "responses",
   );
+  let reviewWithIds: AiResponseWithId[] = []; // Initialize with validatedReview to avoid unassigned variable
   //I put this condition here because sha can be string | null
   if (
     files[0].sha &&
     validatedReview.some((response) => response.feedback_points.length > 0)
   ) {
     console.log("📝 Storing review to database...");
-    storeReview(validatedReview, MODEL, files[0].sha, [
+    reviewWithIds = await storeReview(validatedReview, MODEL, files[0].sha, [
       codeQualityPrompt,
       commentQualityPrompt,
     ]);
@@ -138,7 +142,7 @@ export async function runAiReview(files: PRFile[]): Promise<AiResponse[]> {
     console.log("No review to store");
   }
   console.log("🏁 runAiReview completed");
-  return validatedReview;
+  return reviewWithIds;
 }
 export function removeAdditionalLineNumbers(review: AiResponse): AiResponse {
   const sanitisedLineNumbers = review.feedback_points.map((point) => {

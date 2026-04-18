@@ -9,7 +9,7 @@ export async function postPRComment(params: {
 }) {
   const { owner, repo, pullNumber, body, octokit } = params;
 
-  await octokit.request(
+  return await octokit.request(
     "POST /repos/{owner}/{repo}/issues/{issue_number}/comments",
     {
       owner,

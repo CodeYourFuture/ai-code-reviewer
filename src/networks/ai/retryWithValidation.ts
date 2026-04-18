@@ -1,5 +1,5 @@
 import { AiResponse } from "../../types/aiResponse.js";
-import { aiCall, validateAiResponse } from "../ai_api_request.js";
+import { aiCall, validateAiResponse } from "../ai/ai_api_request.js";
 
 export async function askOpenRouterWithValidation(
   code: string,

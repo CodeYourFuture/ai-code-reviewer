@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { AiResponse } from "../../types/aiResponse.js";
-import * as aiModule from "../ai_api_request.js";
+import * as aiModule from "../ai/ai_api_request.js";
 import { askOpenRouterWithValidation } from "./retryWithValidation.js";
 
 const mockFeedback: AiResponse = {

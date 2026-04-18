@@ -17,7 +17,10 @@ export function buildReviewCommentsArray(
       if (!lineReviewParams) continue;
 
       comments.push({
-        body: feedbackParams.body,
+        body: `feedbackParams.body
+        
+        If you found this comment useful, please react with 🚀, and if not, react with 😕.
+        `,
         path: feedbackParams.path,
         side: "RIGHT",
         ...lineReviewParams,

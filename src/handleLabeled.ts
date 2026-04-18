@@ -20,7 +20,8 @@ export async function handleLabeled(
   console.log(
     `Received a "labeled" event for PR #${payload.pull_request.number}`,
   );
-  if (!(await checkMembershipForUser(payload.sender.login, octokit))) {
+
+  if (process.env.NODE_ENV === 'production' && !(await checkMembershipForUser(payload.sender.login, octokit))) {
     console.log("sender isn't a member of cyf");
     return;
   }

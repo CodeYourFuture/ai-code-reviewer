@@ -18,7 +18,7 @@ export function buildReviewCommentsArray(
 
       comments.push({
         body: `${feedbackParams.body}
-        \nIf you found this comment useful, please (click here)[http://localhost:3000/like/${point.point_id}], and if not, click here.
+        \nIf you found this comment useful, please [click here](http://localhost:3000/like/${point.point_id}), and if not, click here.
         `,
         path: feedbackParams.path,
         side: "RIGHT",

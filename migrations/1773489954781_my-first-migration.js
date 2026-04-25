@@ -44,12 +44,13 @@ export const up = (pgm) => {
     llm_model: "varchar",
     prompt_id: { type: "bigint", references: "prompts(id)" },
   });
+  pgm.createType("feedback", ["like", "dislike"]);
 
   pgm.createTable("user_feedback", {
     id: { type: "bigserial primary key", notNull: true },
     ai_review_id: { type: "bigint", references: "ai_feedback_points(id)" },
     username_github: "text",
-    //user feedback: (I'm not sure how it will look like for now)
+    user_feedback: { type: "feedback" },
   });
 };
 

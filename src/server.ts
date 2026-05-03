@@ -3,7 +3,7 @@ import express from "express";
 import { env } from "./config/env.js";
 import { githubApp } from "./githubApp.js";
 import { rateFeedback } from "./sendRate.js";
-
+import cors from "cors";
 const path = "/api/webhook";
 
 const middleware = createNodeMiddleware(githubApp.webhooks, { path });
@@ -11,6 +11,7 @@ const middleware = createNodeMiddleware(githubApp.webhooks, { path });
 const server = express();
 server.use(middleware);
 server.use(express.json());
+server.use(cors());
 
 server.listen(env.PORT, () => {
   console.log(`Server running on port ${env.PORT}`);

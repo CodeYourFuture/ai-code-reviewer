@@ -12,6 +12,5 @@ export async function rateFeedback(id: number, action: actionTypes) {
     return result.rows[0].id;
   } catch (error) {
     console.error("Error inserting feedback:", error);
-    throw error;
   }
 }

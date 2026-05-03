@@ -21,12 +21,12 @@ server.get("/health", (_, res) => {
   res.json({ status: "ok", message: "Server is healthy" });
 });
 
-server.get("/like/:id", (req, res) => {
+server.post("/like/:id", (req, res) => {
   const { id } = req.params;
   rateFeedback(Number(id), "like");
   res.json({ message: `sent your like to the post with id ${id}` });
 });
-server.get("/dislike/:id", (req, res) => {
+server.post("/dislike/:id", (req, res) => {
   const { id } = req.params;
   rateFeedback(Number(id), "dislike");
   res.json({ message: `sent your dislike to the post with id ${id}` });

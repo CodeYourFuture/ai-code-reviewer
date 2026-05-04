@@ -12,10 +12,11 @@ const logoutBtn = document.getElementById("logout-btn");
 const likeBtn = document.getElementById("like-btn");
 const dislikeBtn = document.getElementById("dislike-btn");
 const profileContainer = document.getElementById("profile");
+const closeBtn = document.getElementById("close-btn");
 
 let auth0Client;
 let commentId = identifyFeedbackCommentId();
-console.log("comment id", commentId);
+
 // Initialize Auth0 client
 async function initAuth0() {
   try {
@@ -42,17 +43,15 @@ async function initAuth0() {
   }
 }
 function identifyFeedbackCommentId() {
-  let id = new URLSearchParams(document.location.search).get("id");
-  console.log(id);
-  return id;
+  return new URLSearchParams(document.location.search).get("id");
 }
 // Handle redirect callback
 async function handleRedirectCallback() {
   try {
     const { appState } = await auth0Client.handleRedirectCallback();
-    console.log(appState);
+
     commentId = appState?.commentId;
-    console.log(commentId);
+
     // Clean up the URL to remove query parameters
     window.history.replaceState({}, document.title, window.location.pathname);
   } catch (err) {
@@ -149,24 +148,34 @@ async function logout() {
 
 async function like() {
   try {
-    fetch(`http://localhost:3000/like/${commentId}`, {
+    const response = await fetch(`http://localhost:3000/like/${commentId}`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
     });
+    if (!response.ok) {
+      const data = await response.json();
+      showError(data.message);
+      return;
+    }
   } catch (err) {
     showError(err.message);
   }
 }
 async function dislike() {
   try {
-    fetch(`http://localhost:3000/dislike/${commentId}`, {
+    const response = await fetch(`http://localhost:3000/dislike/${commentId}`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
     });
+    if (!response.ok) {
+      const data = await response.json();
+      showError(data.message);
+      return;
+    }
   } catch (err) {
     showError(err.message);
   }
@@ -186,9 +195,14 @@ function hideLoading() {
 
 function showError(message) {
   loading.style.display = "none";
-  app.style.display = "none";
   error.style.display = "block";
   errorDetails.textContent = message;
+}
+
+function hideError(message) {
+  loading.style.display = "none";
+  app.style.display = "flex";
+  error.style.display = "none";
 }
 
 function showLoggedIn() {
@@ -206,6 +220,7 @@ loginBtn.addEventListener("click", login);
 logoutBtn.addEventListener("click", logout);
 likeBtn.addEventListener("click", like);
 dislikeBtn.addEventListener("click", dislike);
+closeBtn.addEventListener("click", hideError);
 
 // Initialize the app
 initAuth0();

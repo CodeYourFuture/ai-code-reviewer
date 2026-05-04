@@ -6,11 +6,7 @@ export async function rateFeedback(id: number, action: actionTypes) {
   //TODO: replace placeholder user value
   const values = [id, "Droid_An", action];
 
-  try {
-    const result = await pool.query(query, values);
-    console.log(`user's Feedback added with ID: ${result.rows[0].id}`);
-    return result.rows[0].id;
-  } catch (error) {
-    console.error("Error inserting feedback:", error);
-  }
+  const result = await pool.query(query, values);
+  console.log(`user's Feedback added with ID: ${result.rows[0].id}`);
+  return result.rows[0].id;
 }

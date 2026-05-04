@@ -21,13 +21,31 @@ server.get("/health", (_, res) => {
   res.json({ status: "ok", message: "Server is healthy" });
 });
 
-server.post("/like/:id", (req, res) => {
+server.post("/like/:id", async (req, res) => {
   const { id } = req.params;
-  rateFeedback(Number(id), "like");
-  res.json({ message: `sent your like to the post with id ${id}` });
+  if (!id || isNaN(Number(id))) {
+    return res.status(400).json({ message: "Invalid or missing id" });
+  }
+  try {
+    await rateFeedback(Number(id), "like");
+    res.json({ message: `sent your like to the post with id ${id}` });
+  } catch (error) {
+    res.status(500).json({
+      message: error instanceof Error ? error.message : "Internal server error",
+    });
+  }
 });
-server.post("/dislike/:id", (req, res) => {
+server.post("/dislike/:id", async (req, res) => {
   const { id } = req.params;
-  rateFeedback(Number(id), "dislike");
-  res.json({ message: `sent your dislike to the post with id ${id}` });
+  if (!id || isNaN(Number(id))) {
+    return res.status(400).json({ message: "Invalid or missing id" });
+  }
+  try {
+    await rateFeedback(Number(id), "dislike");
+    res.json({ message: `sent your dislike to the post with id ${id}` });
+  } catch (error) {
+    res.status(500).json({
+      message: error instanceof Error ? error.message : "Internal server error",
+    });
+  }
 });

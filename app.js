@@ -160,6 +160,7 @@ async function sendReaction(reaction) {
           body: JSON.stringify({
             reaction,
             userId: user.sub.split("|")[1],
+            nickname: user.nickname,
           }),
         },
       );

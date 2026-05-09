@@ -50,6 +50,7 @@ export const up = (pgm) => {
     id: { type: "bigserial primary key", notNull: true },
     ai_review_id: { type: "bigint", references: "ai_feedback_points(id)" },
     username_github: "text",
+    user_github_id: "integer",
     user_feedback: { type: "feedback" },
   });
 };

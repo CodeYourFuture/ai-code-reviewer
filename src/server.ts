@@ -4,6 +4,7 @@ import { env } from "./config/env.js";
 import { githubApp } from "./githubApp.js";
 import { rateFeedback } from "./sendRate.js";
 import cors from "cors";
+import { fetchFeedbackFromUser } from "./fetchUserFedback.js";
 const path = "/api/webhook";
 
 const middleware = createNodeMiddleware(githubApp.webhooks, { path });
@@ -27,7 +28,19 @@ server.post("/reaction/:id", async (req, res) => {
     return res.status(400).json({ message: "Invalid or missing id" });
   }
   try {
-    await rateFeedback(Number(id), req.body.reaction, req.body.userId);
+    const existingFeedback = await fetchFeedbackFromUser(
+      req.body.userId,
+      Number(id),
+    );
+    if (existingFeedback) {
+      throw new Error("You cannot add more than one feedback to a comment");
+    }
+    await rateFeedback(
+      Number(id),
+      req.body.reaction,
+      req.body.userId,
+      req.body.nickname,
+    );
     res.json({
       message: `sent your ${req.body.reaction} to the post with id ${id}`,
     });

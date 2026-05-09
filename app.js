@@ -13,7 +13,7 @@ const likeBtn = document.getElementById("like-btn");
 const dislikeBtn = document.getElementById("dislike-btn");
 const profileContainer = document.getElementById("profile");
 const closeBtn = document.getElementById("close-btn");
-
+const submissionMsg = document.querySelector(".logged-in-message");
 let auth0Client;
 let commentId = identifyFeedbackCommentId();
 
@@ -35,7 +35,6 @@ async function initAuth0() {
     ) {
       await handleRedirectCallback();
     }
-
     // Update UI based on authentication state
     await updateUI();
   } catch (err) {
@@ -117,8 +116,9 @@ async function getUserData() {
   try {
     const user = await auth0Client.getUser();
     console.log(user);
+    return user;
   } catch (err) {
-    console.error("Error displaying profile:", err);
+    console.error("Error getting profile:", err);
   }
 }
 // Event handlers
@@ -146,35 +146,29 @@ async function logout() {
   }
 }
 
-async function like() {
+async function sendReaction(reaction) {
   try {
-    const response = await fetch(`http://localhost:3000/like/${commentId}`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-    });
-    if (!response.ok) {
-      const data = await response.json();
-      showError(data.message);
-      return;
-    }
-  } catch (err) {
-    showError(err.message);
-  }
-}
-async function dislike() {
-  try {
-    const response = await fetch(`http://localhost:3000/dislike/${commentId}`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-    });
-    if (!response.ok) {
-      const data = await response.json();
-      showError(data.message);
-      return;
+    if (reaction == "like" || reaction == "dislike") {
+      const user = await getUserData();
+      const response = await fetch(
+        `http://localhost:3000/reaction/${commentId}`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            reaction,
+            userId: user.sub.split("|")[1],
+          }),
+        },
+      );
+      if (!response.ok) {
+        const data = await response.json();
+        showError(data.message);
+        return;
+      }
+      showSubmissionSuccess();
     }
   } catch (err) {
     showError(err.message);
@@ -215,11 +209,17 @@ function showLoggedOut() {
   loggedOutSection.style.display = "flex";
 }
 
+function showSubmissionSuccess() {
+  submissionMsg.style.display = "flex";
+  likeBtn.style.display = "none";
+  dislikeBtn.style.display = "none";
+}
+
 // Event listeners
 loginBtn.addEventListener("click", login);
 logoutBtn.addEventListener("click", logout);
-likeBtn.addEventListener("click", like);
-dislikeBtn.addEventListener("click", dislike);
+likeBtn.addEventListener("click", () => sendReaction("like"));
+dislikeBtn.addEventListener("click", () => sendReaction("dislike"));
 closeBtn.addEventListener("click", hideError);
 
 // Initialize the app

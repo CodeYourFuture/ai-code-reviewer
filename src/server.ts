@@ -5,14 +5,31 @@ import { githubApp } from "./githubApp.js";
 import { rateFeedback } from "./sendRate.js";
 import cors from "cors";
 import { fetchFeedbackFromUser } from "./fetchUserFedback.js";
+import {
+  auth,
+  InvalidTokenError,
+  UnauthorizedError,
+} from "express-oauth2-jwt-bearer";
 const path = "/api/webhook";
 
 const middleware = createNodeMiddleware(githubApp.webhooks, { path });
 
 const server = express();
-server.use(cors());
+server.use(
+  cors({
+    origin: "http://localhost:5173",
+    allowedHeaders: ["Authorization", "Content-Type"],
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  }),
+);
 server.use(middleware);
 server.use(express.json());
+
+// Configure JWT validation middleware
+const checkJwt = auth({
+  audience: env.AUTH0_AUDIENCE,
+  issuerBaseURL: `https://${env.AUTH0_DOMAIN}`,
+});
 
 server.listen(env.PORT, () => {
   console.log(`Server running on port ${env.PORT}`);
@@ -32,7 +49,7 @@ server.post("/reaction/:id", async (req, res) => {
       req.body.userId,
       Number(id),
     );
-    if (existingFeedback) {
+    if (existingFeedback.length > 0) {
       throw new Error("You cannot add more than one feedback to a comment");
     }
     await rateFeedback(
@@ -49,4 +66,41 @@ server.post("/reaction/:id", async (req, res) => {
       message: error instanceof Error ? error.message : "Internal server error",
     });
   }
+});
+
+server.get("/hasUserRatedComment/:id", checkJwt, async (req, res) => {
+  const { id } = req.params;
+  if (!id || isNaN(Number(id))) {
+    return res.status(400).json({ message: "Invalid or missing id" });
+  }
+  const existingFeedback: row[] = await fetchFeedbackFromUser(
+    Number(req.auth?.payload?.sub?.split("|")[1]),
+    Number(id),
+  );
+
+  res.status(200).json({ message: Object.keys(existingFeedback).length > 0 });
+});
+
+server.use((error, request, response, next) => {
+  console.error(error.stack);
+  if (error instanceof InvalidTokenError) {
+    const message = "Bad credentials";
+
+    response.status(error.status).json({ message });
+
+    return;
+  }
+
+  if (error instanceof UnauthorizedError) {
+    const message = "Requires authentication";
+
+    response.status(error.status).json({ message });
+
+    return;
+  }
+
+  const status = 500;
+  const message = "Internal Server Error";
+
+  response.status(status).json({ message });
 });

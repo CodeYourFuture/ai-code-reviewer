@@ -19,6 +19,10 @@ const envSchema = z.object({
 
   // Database
   DATABASE_URL: z.string(),
+
+  //auth0
+  AUTH0_DOMAIN: z.string(),
+  AUTH0_AUDIENCE: z.url(),
 });
 
 const parsed = envSchema.safeParse(process.env);

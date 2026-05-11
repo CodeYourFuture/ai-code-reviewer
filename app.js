@@ -25,6 +25,7 @@ async function initAuth0() {
       clientId: import.meta.env.VITE_AUTH0_CLIENT_ID,
       authorizationParams: {
         redirect_uri: window.location.origin,
+        audience: "https://localhost:5173/",
       },
     });
 
@@ -41,6 +42,21 @@ async function initAuth0() {
     showError(err.message);
   }
 }
+
+async function getAccessToken() {
+  const isAuthenticated = await auth0Client.isAuthenticated();
+
+  if (isAuthenticated) {
+    try {
+      const token = await auth0Client.getTokenSilently();
+      return token;
+    } catch (error) {
+      console.error("Error getting token:", error);
+      showError(error.message);
+    }
+  }
+}
+
 function identifyFeedbackCommentId() {
   return new URLSearchParams(document.location.search).get("id");
 }
@@ -65,8 +81,11 @@ async function updateUI() {
 
     if (isAuthenticated) {
       showLoggedIn();
-      //   await displayProfile();
-      getUserData();
+      const user = await getUserData();
+      const res = await hasUserRatedComment(user.sub.split("|")[1]);
+      if (res === true) {
+        showMessage("you already submitted feedback for that comment");
+      }
     } else {
       showLoggedOut();
     }
@@ -77,41 +96,6 @@ async function updateUI() {
   }
 }
 
-// Display user profile
-// async function displayProfile() {
-//   try {
-//     const user = await auth0Client.getUser();
-//     const placeholderImage = `data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='110' height='110' viewBox='0 0 110 110'%3E%3Ccircle cx='55' cy='55' r='55' fill='%2363b3ed'/%3E%3Cpath d='M55 50c8.28 0 15-6.72 15-15s-6.72-15-15-15-15 6.72-15 15 6.72 15 15 15zm0 7.5c-10 0-30 5.02-30 15v3.75c0 2.07 1.68 3.75 3.75 3.75h52.5c2.07 0 3.75-1.68 3.75-3.75V72.5c0-9.98-20-15-30-15z' fill='%23fff'/%3E%3C/svg%3E`;
-
-//     profileContainer.innerHTML = `
-//       <div style="display: flex; flex-direction: column; align-items: center; gap: 1rem;">
-//         <img
-//           src="${user.picture || placeholderImage}"
-//           alt="${user.name || "User"}"
-//           class="profile-picture"
-//           style="
-//             width: 110px;
-//             height: 110px;
-//             border-radius: 50%;
-//             object-fit: cover;
-//             border: 3px solid #63b3ed;
-//           "
-//           onerror="this.src='${placeholderImage}'"
-//         />
-//         <div style="text-align: center;">
-//           <div class="profile-name" style="font-size: 2rem; font-weight: 600; color: #f7fafc; margin-bottom: 0.5rem;">
-//             ${user.name || "User"}
-//           </div>
-//           <div class="profile-email" style="font-size: 1.15rem; color: #a0aec0;">
-//             ${user.email || "No email provided"}
-//           </div>
-//         </div>
-//       </div>
-//     `;
-//   } catch (err) {
-//     console.error("Error displaying profile:", err);
-//   }
-// }
 async function getUserData() {
   try {
     const user = await auth0Client.getUser();
@@ -126,7 +110,7 @@ async function login() {
   try {
     await auth0Client.loginWithRedirect({
       connection: "github",
-      //i need to pass comment id in order to keep it in state
+      //i need to pass comment id in order to keep it in state after login process
       appState: { commentId: commentId },
     });
   } catch (err) {
@@ -169,7 +153,36 @@ async function sendReaction(reaction) {
         showError(data.message);
         return;
       }
-      showSubmissionSuccess();
+      showMessage("Feedback submitted successfully");
+    }
+  } catch (err) {
+    showError(err.message);
+  }
+}
+async function hasUserRatedComment(userId) {
+  try {
+    const token = await getAccessToken();
+    if (token) {
+      const response = await fetch(
+        `http://localhost:3000/hasUserRatedComment/${commentId}`,
+        {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        },
+      );
+      const data = await response.json();
+
+      if (!response.ok) {
+        showError(data.message);
+        return;
+      } else {
+        if (data.message == true || data.message == false) return data.message;
+      }
+    } else {
+      throw new Error("no token");
     }
   } catch (err) {
     showError(err.message);
@@ -209,11 +222,13 @@ function showLoggedOut() {
   loggedInSection.style.display = "none";
   loggedOutSection.style.display = "flex";
 }
-
-function showSubmissionSuccess() {
+function showMessage(message) {
+  loggedOutSection.style.display = "none";
+  loggedInSection.style.display = "flex";
   submissionMsg.style.display = "flex";
   likeBtn.style.display = "none";
   dislikeBtn.style.display = "none";
+  submissionMsg.textContent = message;
 }
 
 // Event listeners

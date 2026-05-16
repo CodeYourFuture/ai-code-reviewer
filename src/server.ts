@@ -10,6 +10,8 @@ import {
   InvalidTokenError,
   UnauthorizedError,
 } from "express-oauth2-jwt-bearer";
+import { Request, Response, NextFunction } from "express";
+
 const path = "/api/webhook";
 
 const middleware = createNodeMiddleware(githubApp.webhooks, { path });
@@ -73,7 +75,7 @@ server.get("/hasUserRatedComment/:id", checkJwt, async (req, res) => {
   if (!id || isNaN(Number(id))) {
     return res.status(400).json({ message: "Invalid or missing id" });
   }
-  const existingFeedback: row[] = await fetchFeedbackFromUser(
+  const existingFeedback = await fetchFeedbackFromUser(
     Number(req.auth?.payload?.sub?.split("|")[1]),
     Number(id),
   );
@@ -81,26 +83,33 @@ server.get("/hasUserRatedComment/:id", checkJwt, async (req, res) => {
   res.status(200).json({ message: Object.keys(existingFeedback).length > 0 });
 });
 
-server.use((error, request, response, next) => {
-  console.error(error.stack);
-  if (error instanceof InvalidTokenError) {
-    const message = "Bad credentials";
+server.use(
+  (
+    error: Error,
+    _request: Request,
+    response: Response,
+    _next: NextFunction,
+  ) => {
+    console.error(error.stack);
+    if (error instanceof InvalidTokenError) {
+      const message = "Bad credentials";
 
-    response.status(error.status).json({ message });
+      response.status(error.status).json({ message });
 
-    return;
-  }
+      return;
+    }
 
-  if (error instanceof UnauthorizedError) {
-    const message = "Requires authentication";
+    if (error instanceof UnauthorizedError) {
+      const message = "Requires authentication";
 
-    response.status(error.status).json({ message });
+      response.status(error.status).json({ message });
 
-    return;
-  }
+      return;
+    }
 
-  const status = 500;
-  const message = "Internal Server Error";
+    const status = 500;
+    const message = "Internal Server Error";
 
-  response.status(status).json({ message });
-});
+    response.status(status).json({ message });
+  },
+);

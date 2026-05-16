@@ -1,13 +1,12 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 import { storeReview } from "./storeReview.js";
 import { AiResponse } from "../types/aiResponse.js";
 import { MODEL } from "../networks/ai_api_request.js";
 
-vi.mock("./storeReview.js", () => ({
-  addFeedbackPoint: vi.fn(()=>
-    
-),
-}));
+// vi.mock("./storeReview.js", () => ({
+//   addFeedbackPoint: vi.fn(()=>
+//   )
+// }));
 describe("it stores data to db", () => {
   it("return feedback points with point_id", async () => {
     const validatedReview: AiResponse[] = [

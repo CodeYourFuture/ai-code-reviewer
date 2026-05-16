@@ -1,8 +1,4 @@
-import {
-  AiResponse,
-  AiResponseWithId,
-  FeedbackPointSchema,
-} from "../types/aiResponse.js";
+import { AiResponse, AiResponseWithId } from "../types/aiResponse.js";
 import pool from "./db.js";
 
 interface FeedbackPointData {

@@ -10,10 +10,7 @@
     "build": "tsc",
     "start": "node dist/server.js",
     "test": "vitest",
-    "migrate up": "node-pg-migrate up",
-    "devvite": "vite",
-    "buildvite": "tsc && vite build",
-    "preview": "vite preview"
+    "migrate up": "node-pg-migrate up"
   },
   "repository": {
     "type": "git",
@@ -45,7 +42,6 @@
     "smee-client": "^5.0.0",
     "ts-node": "^10.9.2",
     "typescript": "^5.9.3",
-    "vite": "^8.0.10",
     "vitest": "^4.0.18"
   }
 }

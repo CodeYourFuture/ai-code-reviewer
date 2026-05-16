@@ -132,28 +132,34 @@ async function logout() {
 
 async function sendReaction(reaction) {
   try {
-    if (reaction == "like" || reaction == "dislike") {
-      const user = await getUserData();
-      const response = await fetch(
-        `http://localhost:3000/reaction/${commentId}`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
+    const token = await getAccessToken();
+    if (token) {
+      if (reaction == "like" || reaction == "dislike") {
+        const user = await getUserData();
+        const response = await fetch(
+          `http://localhost:3000/reaction/${commentId}`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({
+              reaction,
+              userId: user.sub.split("|")[1],
+              nickname: user.nickname,
+            }),
           },
-          body: JSON.stringify({
-            reaction,
-            userId: user.sub.split("|")[1],
-            nickname: user.nickname,
-          }),
-        },
-      );
-      if (!response.ok) {
-        const data = await response.json();
-        showError(data.message);
-        return;
+        );
+        if (!response.ok) {
+          const data = await response.json();
+          showError(data.message);
+          return;
+        }
+        showMessage("Feedback submitted successfully");
       }
-      showMessage("Feedback submitted successfully");
+    } else {
+      throw new Error("no token");
     }
   } catch (err) {
     showError(err.message);

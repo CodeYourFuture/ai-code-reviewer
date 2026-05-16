@@ -39,7 +39,7 @@ server.get("/health", (_, res) => {
   res.json({ status: "ok", message: "Server is healthy" });
 });
 
-server.post("/reaction/:id", async (req, res) => {
+server.post("/reaction/:id", checkJwt, async (req, res) => {
   const { id } = req.params;
   if (!id || isNaN(Number(id))) {
     return res.status(400).json({ message: "Invalid or missing id" });

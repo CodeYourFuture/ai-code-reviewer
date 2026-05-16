@@ -17,13 +17,7 @@ const path = "/api/webhook";
 const middleware = createNodeMiddleware(githubApp.webhooks, { path });
 
 const server = express();
-server.use(
-  cors({
-    origin: "http://localhost:5173",
-    allowedHeaders: ["Authorization", "Content-Type"],
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-  }),
-);
+server.use(cors());
 server.use(middleware);
 server.use(express.json());
 

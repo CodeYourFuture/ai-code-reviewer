@@ -14,16 +14,15 @@ interface FeedbackPointData {
 }
 
 export const getOrCreatePromptId = async (prompt: string): Promise<number> => {
-  const selectQuery = "SELECT id FROM prompts WHERE prompt = $1 LIMIT 1";
-  const insertQuery = "INSERT INTO prompts (prompt) VALUES ($1) RETURNING id";
+  const query = `
+    INSERT INTO prompts (prompt)
+    VALUES ($1)
+    ON CONFLICT (prompt) DO UPDATE SET prompt = EXCLUDED.prompt
+    RETURNING id
+  `;
 
-  const selectResult = await pool.query(selectQuery, [prompt]);
-  if (selectResult.rows.length > 0) {
-    return selectResult.rows[0].id;
-  }
-
-  const insertResult = await pool.query(insertQuery, [prompt]);
-  return insertResult.rows[0].id;
+  const result = await pool.query(query, [prompt]);
+  return result.rows[0].id;
 };
 
 export const addFeedbackPoint = async (
@@ -71,8 +70,10 @@ export const storeReview = async (
       const feedbackPointData: FeedbackPointData = {
         feedback_type: feedback.feedback_type,
         file_name: point.file_name,
+        //TODO: save several topic if they are present, not only one
         review_topic: point.topics[0],
         point: point.point,
+        // since ai can sometimes return array of numbers, despite of instructions, take only the first line number
         line_number: point.line_numbers[0],
         severity: point.severity,
         commit_sha,

@@ -17,6 +17,7 @@ const submissionMsg = document.querySelector(".logged-in-message");
 let auth0Client;
 let commentId = identifyFeedbackCommentId();
 
+const API_BASE = import.meta.env.VITE_API_BASE_URL;
 // Initialize Auth0 client
 async function initAuth0() {
   try {
@@ -99,7 +100,6 @@ async function updateUI() {
 async function getUserData() {
   try {
     const user = await auth0Client.getUser();
-    console.log(user);
     return user;
   } catch (err) {
     console.error("Error getting profile:", err);
@@ -134,23 +134,20 @@ async function sendReaction(reaction) {
   try {
     const token = await getAccessToken();
     if (token) {
-      if (reaction == "like" || reaction == "dislike") {
+      if (reaction === "like" || reaction === "dislike") {
         const user = await getUserData();
-        const response = await fetch(
-          `http://localhost:3000/reaction/${commentId}`,
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${token}`,
-            },
-            body: JSON.stringify({
-              reaction,
-              userId: user.sub.split("|")[1],
-              nickname: user.nickname,
-            }),
+        const response = await fetch(`${API_BASE}/reaction/${commentId}`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
           },
-        );
+          body: JSON.stringify({
+            reaction,
+            userId: user.sub.split("|")[1],
+            nickname: user.nickname,
+          }),
+        });
         if (!response.ok) {
           const data = await response.json();
           showError(data.message);
@@ -170,7 +167,7 @@ async function hasUserRatedComment(userId) {
     const token = await getAccessToken();
     if (token) {
       const response = await fetch(
-        `http://localhost:3000/hasUserRatedComment/${commentId}`,
+        `${API_BASE}/hasUserRatedComment/${commentId}`,
         {
           method: "GET",
           headers: {
@@ -185,7 +182,8 @@ async function hasUserRatedComment(userId) {
         showError(data.message);
         return;
       } else {
-        if (data.message == true || data.message == false) return data.message;
+        if (data.message === true || data.message === false)
+          return data.message;
       }
     } else {
       throw new Error("no token");
@@ -213,7 +211,7 @@ function showError(message) {
   errorDetails.textContent = message;
 }
 
-function hideError(message) {
+function hideError() {
   loading.style.display = "none";
   app.style.display = "flex";
   error.style.display = "none";

@@ -6,6 +6,7 @@ import {
   AiResponseSchema,
   AiResponseWithId,
   FEEDBACK_TYPES,
+  ReviewWithPrompt,
 } from "../types/aiResponse.js";
 import { PRFile } from "../types/githubTypes.js";
 import { buildPRReviewPrompt } from "../utils/buildPRReviewPrompt.js";
@@ -18,6 +19,7 @@ import { storeReview } from "../db/storeReview.js";
 const openRouter = new OpenRouter({
   apiKey: env.OPENROUTER_API_KEY,
 });
+
 // const FreeModel = "arcee-ai/trinity-large-preview:free";
 export const MODEL = "openai/gpt-5.1";
 export const codeQualityPrompt = `${basePrompt}
@@ -30,6 +32,11 @@ export const defaultChatParameters: Partial<ChatGenerationParams> = {
     type: "json_schema",
     jsonSchema: getSchema,
   },
+};
+
+const FEEDBACK_TYPE_PROMPTS: Record<string, string> = {
+  "code quality": codeQualityPrompt,
+  "comments quality": commentQualityPrompt,
 };
 
 function buildMessages(code: string, feedbackType: string): Message[] {
@@ -89,55 +96,60 @@ export async function runAiReview(
   });
   console.log("--------- CODE --------\n", code);
   console.log("\n🤖 Sending PR diff to OpenRouter for review...\n");
-  let combinedReview: AiResponse[] = [];
+
   const feedbackPromises = FEEDBACK_TYPES.map((type) =>
-    askOpenRouterWithValidation(code, type),
+    askOpenRouterWithValidation(code, type).then((review) => ({
+      review,
+      prompt: FEEDBACK_TYPE_PROMPTS[type.toLowerCase()],
+    })),
   );
 
   const results = await Promise.allSettled(feedbackPromises);
+
+  let combinedReview: ReviewWithPrompt[] = [];
+
   results.forEach((result) => {
     if (result.status === "fulfilled") {
-      const feedback = result.value;
-      combinedReview.push(feedback);
+      combinedReview.push(result.value);
     }
   });
   const SEVERITY_THRESHOLD = 2;
   combinedReview.forEach((review) => {
-    if (review.feedback_type != "comments quality") {
-      review.feedback_points = review.feedback_points.filter(
+    if (review.review.feedback_type != "comments quality") {
+      review.review.feedback_points = review.review.feedback_points.filter(
         (point) => point.severity > SEVERITY_THRESHOLD,
       );
     }
   });
-  console.log(
-    "✅ Severity filtering completed. Combined review now has",
-    combinedReview.length,
-    "responses",
-  );
-  if (combinedReview.some((response) => response.feedback_points.length > 0)) {
-    combinedReview = combinedReview.map(removeAdditionalLineNumbers);
+  console.log("✅ Severity filtering completed");
+  if (
+    combinedReview.some(
+      (response) => response.review.feedback_points.length > 0,
+    )
+  ) {
+    combinedReview = combinedReview.map((reviewWithPrompt) => ({
+      review: removeAdditionalLineNumbers(reviewWithPrompt.review),
+      prompt: reviewWithPrompt.prompt,
+    }));
   }
   console.log("✅ Line number removal completed");
   console.log("\n================ PR REVIEW ================\n");
   console.log(JSON.stringify(combinedReview, null, 2));
   console.log("\n==========================================\n");
+  // maybe I just need to pass the whole combined review to the validator and change the workflow there
   const validatedReview = validateFeedbackPoints(combinedReview, files);
-  console.log(
-    "✅ Validation completed. Validated review has",
-    validatedReview.length,
-    "responses",
-  );
-  let reviewWithIds: AiResponseWithId[] = []; // Initialize with validatedReview to avoid unassigned variable
+  console.log("✅ Validation completed");
+  let reviewWithIds: AiResponseWithId[] = []; // Initialize it here to avoid unassigned variable error
   //I put this condition here because sha can be string | null
   if (
     files[0].sha &&
-    validatedReview.some((response) => response.feedback_points.length > 0)
+    validatedReview.some(
+      (response) => response.review.feedback_points.length > 0,
+    )
   ) {
     console.log("📝 Storing review to database...");
-    reviewWithIds = await storeReview(validatedReview, MODEL, files[0].sha, [
-      codeQualityPrompt,
-      commentQualityPrompt,
-    ]);
+    // files[0].sha contains the sha of the commit which ai reviewed
+    reviewWithIds = await storeReview(validatedReview, MODEL, files[0].sha);
   } else {
     console.log("No review to store");
   }

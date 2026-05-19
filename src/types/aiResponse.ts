@@ -5,6 +5,11 @@ import { z } from "zod";
 // https://zod.dev/api?id=enums
 export const FEEDBACK_TYPES = ["code quality", "comments quality"] as const;
 
+export interface ReviewWithPrompt {
+  review: AiResponse;
+  prompt: string;
+}
+
 export const FeedbackPointSchema = z
   .object({
     file_name: z

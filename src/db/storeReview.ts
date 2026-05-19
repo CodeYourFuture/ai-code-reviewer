@@ -1,4 +1,4 @@
-import { AiResponse, AiResponseWithId } from "../types/aiResponse.js";
+import { AiResponseWithId, ReviewWithPrompt } from "../types/aiResponse.js";
 import pool from "./db.js";
 
 interface FeedbackPointData {
@@ -53,22 +53,21 @@ export const addFeedbackPoint = async (
 };
 
 export const storeReview = async (
-  review: AiResponse[],
+  review: ReviewWithPrompt[],
   model: string,
   commit_sha: string,
-  prompts: string[],
 ): Promise<AiResponseWithId[]> => {
   const feedbackWithId: AiResponseWithId[] = [];
 
   for (let feedbackIndex = 0; feedbackIndex < review.length; feedbackIndex++) {
     const feedback = review[feedbackIndex];
 
-    const prompt_id = await getOrCreatePromptId(prompts[feedbackIndex]);
+    const prompt_id = await getOrCreatePromptId(feedback.prompt);
     const updatedPoints = [];
 
-    for (const point of feedback.feedback_points) {
+    for (const point of feedback.review.feedback_points) {
       const feedbackPointData: FeedbackPointData = {
-        feedback_type: feedback.feedback_type,
+        feedback_type: feedback.review.feedback_type,
         file_name: point.file_name,
         //TODO: save several topic if they are present, not only one
         review_topic: point.topics[0],
@@ -90,7 +89,7 @@ export const storeReview = async (
     }
 
     feedbackWithId.push({
-      feedback_type: feedback.feedback_type,
+      feedback_type: feedback.review.feedback_type,
       feedback_points: updatedPoints,
     });
   }

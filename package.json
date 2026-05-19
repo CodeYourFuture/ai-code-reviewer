@@ -10,7 +10,8 @@
     "build": "tsc",
     "start": "node dist/server.js",
     "test": "vitest",
-    "migrate up": "node-pg-migrate up"
+    "migrate up": "node-pg-migrate up",
+    "migrate": "node-pg-migrate"
   },
   "repository": {
     "type": "git",

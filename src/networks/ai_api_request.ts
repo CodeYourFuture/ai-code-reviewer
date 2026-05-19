@@ -19,7 +19,6 @@ import { storeReview } from "../db/storeReview.js";
 const openRouter = new OpenRouter({
   apiKey: env.OPENROUTER_API_KEY,
 });
-
 // const FreeModel = "arcee-ai/trinity-large-preview:free";
 export const MODEL = "openai/gpt-5.1";
 export const codeQualityPrompt = `${basePrompt}
@@ -136,7 +135,6 @@ export async function runAiReview(
   console.log("\n================ PR REVIEW ================\n");
   console.log(JSON.stringify(combinedReview, null, 2));
   console.log("\n==========================================\n");
-  // maybe I just need to pass the whole combined review to the validator and change the workflow there
   const validatedReview = validateFeedbackPoints(combinedReview, files);
   console.log("✅ Validation completed");
   let reviewWithIds: AiResponseWithId[] = []; // Initialize it here to avoid unassigned variable error

@@ -127,7 +127,7 @@ export async function runAiReview(
     )
   ) {
     combinedReview = combinedReview.map((reviewWithPrompt) => ({
-      review: removeAdditionalLineNumbers(reviewWithPrompt.review),
+      review: removeAdditionalLineNumbersAndSymbols(reviewWithPrompt.review),
       prompt: reviewWithPrompt.prompt,
     }));
   }
@@ -154,16 +154,20 @@ export async function runAiReview(
   console.log("🏁 runAiReview completed");
   return reviewWithIds;
 }
-export function removeAdditionalLineNumbers(review: AiResponse): AiResponse {
-  const sanitisedLineNumbers = review.feedback_points.map((point) => {
-    if (point.line_numbers[0].includes(",")) {
-      point.line_numbers[0] = point.line_numbers[0].split(",")[0];
-    }
-    return point;
+
+export function removeAdditionalLineNumbersAndSymbols(
+  review: AiResponse,
+): AiResponse {
+  const sanitisedLineNumbers = review.feedback_points.flatMap((point) => {
+    const match = point.line_numbers[0].match(/\d+(?:-\d+)?/);
+    if (!match) return [];
+    return [
+      {
+        ...point,
+        line_numbers: [match[0], ...point.line_numbers.slice(1)],
+      },
+    ];
   });
 
-  return {
-    ...review,
-    feedback_points: sanitisedLineNumbers,
-  };
+  return { ...review, feedback_points: sanitisedLineNumbers };
 }

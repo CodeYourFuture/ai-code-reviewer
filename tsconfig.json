@@ -1,6 +1,5 @@
 {
   "compilerOptions": {
-
     "target": "ES2022",
     "lib": ["ES2022"],
     "module": "nodenext",
@@ -14,8 +13,8 @@
 
     "skipLibCheck": true,
     "noUnusedLocals": true,
-    "noUnusedParameters": true,
+    "noUnusedParameters": true
   },
   "include": ["src"],
-  "exclude": ["node_modules", "dist", "experiments"]
+  "exclude": ["node_modules", "dist", "experiments", "**/*.test.ts"]
 }

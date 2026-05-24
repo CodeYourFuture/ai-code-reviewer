@@ -4,7 +4,7 @@ import { env } from "./config/env.js";
 import { githubApp } from "./githubApp.js";
 import { rateFeedback } from "./sendRate.js";
 import cors from "cors";
-import { fetchFeedbackFromUser } from "./fetchUserFedback.js";
+import { fetchFeedbackFromUser } from "./fetchUserFeedback.js";
 import {
   auth,
   InvalidTokenError,

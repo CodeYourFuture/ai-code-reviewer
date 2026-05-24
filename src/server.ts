@@ -27,10 +27,6 @@ const checkJwt = auth({
   issuerBaseURL: `https://${env.AUTH0_DOMAIN}`,
 });
 
-server.listen(env.PORT, () => {
-  console.log(`Server running on port ${env.PORT}`);
-});
-
 server.get("/health", (_, res) => {
   res.json({ status: "ok", message: "Server is healthy" });
 });
@@ -107,3 +103,6 @@ server.use(
     response.status(status).json({ message });
   },
 );
+server.listen(env.PORT, () => {
+  console.log(`Server running on port ${env.PORT}`);
+});

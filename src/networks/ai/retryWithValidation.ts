@@ -1,5 +1,5 @@
 import { AiResponse } from "../../types/aiResponse.js";
-import { aiCall, validateAiResponse } from "../ai_api_request.js";
+import { aiCall, validateAiResponse } from "../ai/ai_api_request.js";
 
 // Sometime ai response might be malformed, so I implemented this retry function to rerun review if it's not valid
 export async function askOpenRouterWithValidation(

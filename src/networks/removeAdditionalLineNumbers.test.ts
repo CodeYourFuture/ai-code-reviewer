@@ -1,6 +1,6 @@
 import { AiResponse } from "../types/aiResponse.js";
 import { describe, expect, it } from "vitest";
-import { removeAdditionalLineNumbers } from "./ai_api_request.js";
+import { removeAdditionalLineNumbers } from "./ai/ai_api_request.js";
 
 const review: AiResponse = {
   feedback_type: "code quality",

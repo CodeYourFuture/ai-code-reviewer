@@ -1,20 +1,20 @@
 import { OpenRouter } from "@openrouter/sdk";
 import { ChatGenerationParams, Message } from "@openrouter/sdk/models";
-import { env } from "../config/env.js";
+import { env } from "../../config/env.js";
 import {
   AiResponse,
   AiResponseSchema,
   AiResponseWithId,
   FEEDBACK_TYPES,
   ReviewWithPrompt,
-} from "../types/aiResponse.js";
-import { PRFile } from "../types/githubTypes.js";
-import { buildPRReviewPrompt } from "../utils/buildPRReviewPrompt.js";
-import { getSchema } from "../utils/responseSchemas/getSchema.js";
-import { badCommentsPrompt, basePrompt, topics } from "./ai/prompt.js";
-import { askOpenRouterWithValidation } from "./ai/retryWithValidation.js";
-import { validateFeedbackPoints } from "../validateFeedbackPoints.js";
-import { storeReview } from "../db/storeReview.js";
+} from "../../types/aiResponse.js";
+import { PRFile } from "../../types/githubTypes.js";
+import { buildPRReviewPrompt } from "../../utils/buildPRReviewPrompt.js";
+import { getSchema } from "../../utils/responseSchemas/getSchema.js";
+import { badCommentsPrompt, basePrompt, topics } from "../ai/prompt.js";
+import { askOpenRouterWithValidation } from "../ai/retryWithValidation.js";
+import { validateFeedbackPoints } from "../../validateFeedbackPoints.js";
+import { storeReview } from "../../db/storeReview.js";
 
 const openRouter = new OpenRouter({
   apiKey: env.OPENROUTER_API_KEY,

@@ -17,13 +17,11 @@
     "type": "git",
     "url": "git+https://github.com/CodeYourFuture/ai-code-reviewer.git"
   },
-  "license": "UNLICENSED",
   "bugs": {
     "url": "https://github.com/CodeYourFuture/ai-code-reviewer/issues"
   },
   "homepage": "https://github.com/CodeYourFuture/ai-code-reviewer#readme",
   "dependencies": {
-    "@auth0/auth0-spa-js": "^2.19.2",
     "@octokit/webhooks": "^14.2.0",
     "@octokit/webhooks-types": "^7.6.1",
     "@openrouter/sdk": "^0.5.1",

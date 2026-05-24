@@ -7,7 +7,7 @@ export async function rateFeedback(
   userId: number,
   nickname: string,
 ) {
-  const query = `INSERT INTO user_feedback (ai_review_id, user_github_id, username_github, user_feedback) VALUES ($1, $2, $3, $4) RETURNING id`;
+  const query = `INSERT INTO users_feedback (ai_review_id, user_github_id, username_github, user_feedback) VALUES ($1, $2, $3, $4) RETURNING id`;
 
   const values = [id, userId, nickname, action];
 

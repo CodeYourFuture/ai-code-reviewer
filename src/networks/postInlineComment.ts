@@ -1,5 +1,5 @@
 import { Octokit } from "octokit";
-import { AiResponse } from "../types/aiResponse.js";
+import { AiResponseWithId } from "../types/aiResponse.js";
 import type { CreateReviewComment } from "../types/githubTypes.js";
 import { buildReviewCommentsArray } from "../utils/commentsToList.js";
 
@@ -8,7 +8,7 @@ export async function postInlineComments(
   repo: string,
   pullNumber: number,
   octokit: Octokit,
-  review: AiResponse[],
+  review: AiResponseWithId[],
   commitId: string,
 ) {
   const commentsQualityReview = review.find(

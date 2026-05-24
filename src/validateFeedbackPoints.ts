@@ -1,4 +1,4 @@
-import { AiResponse } from "./types/aiResponse.js";
+import { ReviewWithPrompt } from "./types/aiResponse.js";
 import type { PRFile } from "./types/githubTypes.js";
 import { getLineNumbers } from "./utils/extractReviewParams.js";
 
@@ -45,10 +45,9 @@ function getMaxLineInPatch(patch: string | undefined): number {
  * - Line numbers outside the valid range in a file
  */
 export function validateFeedbackPoints(
-  responses: AiResponse[],
+  responses: ReviewWithPrompt[],
   files: PRFile[],
-): AiResponse[] {
-  // Build a map of filename -> max line number
+): ReviewWithPrompt[] {
   const fileLineMap = new Map<string, number>();
   for (const file of files) {
     const maxLine = getMaxLineInPatch(file.patch);
@@ -57,29 +56,30 @@ export function validateFeedbackPoints(
 
   return responses.map((response) => ({
     ...response,
-    feedback_points: response.feedback_points.filter((point) => {
-      // Check if file exists in PR
-      if (!fileLineMap.has(point.file_name)) {
-        console.log(
-          `Filtering out feedback point: file "${point.file_name}" not in PR`,
-        );
-        return false;
-      }
-
-      // Check if all line numbers are valid
-      const maxLine = fileLineMap.get(point.file_name)!;
-      const lines = getLineNumbers(point.line_numbers);
-
-      for (const lineNum of lines[0]) {
-        if (lineNum > maxLine || lineNum < 1) {
+    review: {
+      ...response.review,
+      feedback_points: response.review.feedback_points.filter((point) => {
+        if (!fileLineMap.has(point.file_name)) {
           console.log(
-            `Filtering out feedback point: line ${lineNum} out of range [1-${maxLine}] for file "${point.file_name}"`,
+            `Filtering out feedback point: file "${point.file_name}" not in PR`,
           );
           return false;
         }
-      }
 
-      return true;
-    }),
+        const maxLine = fileLineMap.get(point.file_name)!;
+        const lines = getLineNumbers(point.line_numbers);
+
+        for (const lineNum of lines[0]) {
+          if (lineNum > maxLine || lineNum < 1) {
+            console.log(
+              `Filtering out feedback point: line ${lineNum} out of range [1-${maxLine}] for file "${point.file_name}"`,
+            );
+            return false;
+          }
+        }
+
+        return true;
+      }),
+    },
   }));
 }

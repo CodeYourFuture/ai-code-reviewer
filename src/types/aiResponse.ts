@@ -5,6 +5,11 @@ import { z } from "zod";
 // https://zod.dev/api?id=enums
 export const FEEDBACK_TYPES = ["code quality", "comments quality"] as const;
 
+export interface ReviewWithPrompt {
+  review: AiResponse;
+  prompt: string;
+}
+
 export const FeedbackPointSchema = z
   .object({
     file_name: z
@@ -46,3 +51,13 @@ export const AiResponseSchema = z.object({
 // Always create a TypeScript type from the schema using z.infer.
 export type AiResponse = z.infer<typeof AiResponseSchema>;
 export type FeedbackPoint = z.infer<typeof FeedbackPointSchema>;
+
+export const FeedbackPointSchemaWithId = FeedbackPointSchema.extend({
+  point_id: z.number(),
+});
+export const AiResponseSchemaWithId = z.object({
+  feedback_type: z.enum(FEEDBACK_TYPES),
+  feedback_points: z.array(FeedbackPointSchemaWithId),
+});
+export type AiResponseWithId = z.infer<typeof AiResponseSchemaWithId>;
+export type FeedbackPointWithId = z.infer<typeof FeedbackPointSchemaWithId>;

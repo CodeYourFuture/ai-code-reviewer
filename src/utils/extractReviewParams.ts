@@ -16,8 +16,11 @@ export function getLineNumbers(lineNumbers: string[]): number[][] {
   const lines: number[][] = [];
 
   if (lineNumbers[0].includes("-")) {
-    const [start, end] = lineNumbers[0].split("-").map(Number);
-    lines.push([start, end]);
+    const onlyRange = lineNumbers[0].match(/\d+(?:-\d+)?/);
+    if (onlyRange) {
+      const [start, end] = onlyRange[0].split("-").map(Number);
+      lines.push([start, end]);
+    }
   } else {
     lines.push([Number(lineNumbers[0])]);
   }

@@ -10,6 +10,7 @@
     "build": "tsc",
     "start": "node dist/server.js",
     "test": "vitest",
+    "migrate up": "node-pg-migrate up",
     "migrate": "node-pg-migrate"
   },
   "repository": {
@@ -22,15 +23,19 @@
   },
   "homepage": "https://github.com/CodeYourFuture/ai-code-reviewer#readme",
   "dependencies": {
+    "@auth0/auth0-spa-js": "^2.19.2",
     "@octokit/webhooks": "^14.2.0",
     "@octokit/webhooks-types": "^7.6.1",
     "@openrouter/sdk": "^0.5.1",
+    "cors": "^2.8.6",
     "dotenv": "^17.2.3",
     "express": "^5.2.1",
+    "express-oauth2-jwt-bearer": "^1.8.0",
     "octokit": "^5.0.5",
     "zod": "^4.3.6"
   },
   "devDependencies": {
+    "@types/cors": "^2.8.19",
     "@types/express": "^5.0.6",
     "@types/node": "^25.0.10",
     "@types/pg": "^8.20.0",

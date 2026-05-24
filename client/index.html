@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Send Feedback</title>
+  <link rel="stylesheet" href="src/style.css" />
+</head>
+
+<body>
+  <div class="app-container">
+    <!-- Loading State -->
+    <div id="loading" class="loading-state">
+      <div class="loading-text">Loading...</div>
+    </div>
+
+    <!-- Error State -->
+    <div id="error" class="error-state" style="display: none;">
+      <div class="error-title">Oops!</div>
+      <div class="error-message">Something went wrong</div>
+      <div id="error-details" class="error-sub-message"></div>
+      <button id="close-btn" class="button close" aria-label="Close">Close</button>
+    </div>
+
+    <!-- Main Content -->
+    <div id="app" class="main-card-wrapper" style="display: none;">
+
+      <!-- Logged Out State -->
+      <div id="logged-out" class="action-card">
+        <h1 class="main-title">Please authorize using your github to leave feedback</h1>
+        <button id="login-btn" class="button login">Log In</button>
+      </div>
+
+      <!-- Logged In State -->
+      <div id="logged-in" class="logged-in-section" style="display: none;">
+        <div class="logged-in-message" style="display: none;">✅ Feedback submitted!</div>
+        <button id="like-btn" class="button like">Like AI comment</button>
+        <button id="dislike-btn" class="button dislike">Dislike AI comment</button>
+        <button id="logout-btn" class="button logout">Log Out</button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="src/app.js"></script>
+</body>
+
+</html>

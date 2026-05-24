@@ -2,7 +2,7 @@ import { formReviewParams } from "../networks/postInlineComment.js";
 import { FeedbackPointWithId } from "../types/aiResponse.js";
 import type { CreateReviewComment } from "../types/githubTypes.js";
 import { extractReviewParams } from "../utils/extractReviewParams.js";
-
+import { env } from "../config/env.js";
 export function buildReviewCommentsArray(
   points: FeedbackPointWithId[],
 ): CreateReviewComment[] {
@@ -18,7 +18,7 @@ export function buildReviewCommentsArray(
 
       comments.push({
         body: `${feedbackParams.body}
-        \nIf you found this comment useful, please [click here](http://localhost:3000/like/${point.point_id}), and if not, click here.
+        \nTo "like" or "dislike" this comment, please follow [this link](${env.BASE_URL}/?id=${point.point_id})
         `,
         path: feedbackParams.path,
         side: "RIGHT",

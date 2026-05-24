@@ -17,7 +17,12 @@ export const up = (pgm) => {
     },
     { ifNotExists: true },
   );
-  pgm.createType("feedback", ["like", "dislike"], { ifNotExists: true });
+  // PostgreSQL doesn't support if not exist, so I have to use sql block workaround
+  pgm.sql(`DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'feedback') THEN
+    CREATE TYPE feedback AS ENUM ('like', 'dislike');
+  END IF;
+END $$;`);
   pgm.createTable(
     "ai_feedback_points",
     {
@@ -54,7 +59,7 @@ export const up = (pgm) => {
   );
 
   pgm.createTable(
-    "user_feedback",
+    "users_feedback",
     {
       id: { type: "bigserial", primaryKey: true, notNull: true },
       ai_review_id: { type: "bigint", references: "ai_feedback_points(id)" },

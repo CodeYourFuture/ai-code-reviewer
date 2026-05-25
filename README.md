@@ -69,6 +69,9 @@ WEBHOOK_SECRET=<your-webhook-secret>
 GITHUB_PRIVATE_KEY_PATH=<path-to-your-private-key-file>
 WEBHOOK_PROXY_URL="https://smee.io/<your-channel>"
 OPENROUTER_API_KEY="YOUR_KEY"
+DATABASE_USER=
+DATABASE_PASSWORD=
+DATABASE_NAME=
 DATABASE_URL="postgres://user:password@localhost:5432/your_db"
 AUTH0_DOMAIN="your-tenant-domain"
 AUTH0_AUDIENCE="your-audience"
@@ -131,15 +134,25 @@ Run type checking:
 npm run typeCheck
 ```
 
-## Production
+## Coolify Deployment Instructions
 
 In production, you do not need a webhook proxy.
 
 For production GitHub App setup, use `GITHUB_PRIVATE_KEY` with the raw `.pem` content instead of `GITHUB_PRIVATE_KEY_PATH`.
 
-Use this command to build and start the backend:
+1. Add New Resource, select Public Repository, and point to this GitHub repository. Add all variables from `.env.example.prod`
+   Use these commands to build and start the backend:
 
 ```bash
 npm run build
-npm run start
+npm run migrate up && npm run start
 ```
+
+2. To deploy the frontend
+   1. Create another recourse
+   2. Check both:
+   - `Is it a static site?`
+   - `Is it a SPA (Single Page Application)?`
+   3. set `Base directory` to `/client`
+   4. set `Publish Directory` to `/dist`
+   5. add env vars

@@ -9,7 +9,7 @@ export async function fetchFeedbackFromUser(
   commentId: number,
 ): Promise<row[]> {
   const query =
-    "SELECT ai_review_id, user_github_id FROM user_feedback WHERE user_github_id = $1 AND ai_review_id = $2";
+    "SELECT ai_review_id, user_github_id FROM users_feedback WHERE user_github_id = $1 AND ai_review_id = $2";
 
   const values = [userId, commentId];
 

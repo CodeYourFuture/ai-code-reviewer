@@ -77,7 +77,7 @@ END $$;`);
  * @returns {Promise<void> | void}
  */
 export const down = (pgm) => {
-  pgm.dropTable("user_feedback", { ifExists: true });
+  pgm.dropTable("users_feedback", { ifExists: true });
   pgm.dropTable("ai_feedback_points", { ifExists: true });
   pgm.dropTable("prompts", { ifExists: true });
   pgm.dropType("feedback", { ifExists: true, cascade: true });

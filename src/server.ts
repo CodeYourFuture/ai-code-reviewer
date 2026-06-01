@@ -86,6 +86,12 @@ server.post("/reaction/:id", checkJwt, requireCyfMember, async (req, res) => {
       message: `sent your ${req.body.reaction} to the post with id ${id}`,
     });
   } catch (error) {
+    console.error(error);
+    if (error instanceof DatabaseError) {
+      if ((error.code = "23503")) {
+        res.status(500).json({ message: "Requested resource doesn't exist" });
+      }
+    }
     res.status(500).json({
       message: error instanceof Error ? error.message : "Internal server error",
     });

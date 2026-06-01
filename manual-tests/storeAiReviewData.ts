@@ -2,7 +2,7 @@ import fs from "node:fs";
 import path from "path";
 import { createInterface } from "readline";
 import { fileURLToPath } from "url";
-import { ReviewWithPrompt } from "../types/aiResponse.js";
+import { ReviewWithPrompt } from "../src/types/aiResponse.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);

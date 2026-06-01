@@ -1,6 +1,6 @@
-import { ReviewWithPrompt } from "./types/aiResponse.js";
-import type { PRFile } from "./types/githubTypes.js";
-import { getLineNumbers } from "./utils/extractReviewParams.js";
+import { ReviewWithPrompt } from "../types/aiResponse.js";
+import type { PRFile } from "../types/githubTypes.js";
+import { getLineNumbers } from "../utils/extractReviewParams.js";
 
 /**
  * Extract the maximum line number from a patch by parsing the '@@' hunk headers.

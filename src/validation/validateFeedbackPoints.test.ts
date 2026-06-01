@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
-import type { AiResponse } from "./types/aiResponse.js";
-import type { PRFile } from "./types/githubTypes.js";
+import type { AiResponse } from "../types/aiResponse.js";
+import type { PRFile } from "../types/githubTypes.js";
 import { validateFeedbackPoints } from "./validateFeedbackPoints.js";
 
 const makePoint = (

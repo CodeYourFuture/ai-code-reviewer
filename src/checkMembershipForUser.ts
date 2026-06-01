@@ -1,28 +1,38 @@
 import { Octokit } from "octokit";
-// import { octokit } from "./testApp.js";
+import { orgOctokit } from "./githubApp.js";
+import { AutoCleanupCache as TTLCache } from "./ttlCache.js";
+
+const orgName = "CodeYourFuture";
+
+const membershipCache = new TTLCache<string, boolean>(600000);
+
 export async function checkMembershipForUser(
   senderLogin: string,
-  octokit: Octokit,
+  octokit: Octokit = orgOctokit,
 ) {
-  const orgName = "CodeYourFuture";
+  const cached = membershipCache.get(senderLogin);
+  if (cached !== undefined) {
+    return cached;
+  }
   try {
-    await octokit.request("GET /orgs/{org}/members/{username}", {
+    const res = await octokit.request("GET /orgs/{org}/members/{username}", {
       org: orgName,
       username: senderLogin,
     });
-    return true;
-  } catch (error: any) {
-    console.error(`
-GitHub API Error
-Message : ${error.message}
-Status  : ${error.status}
-URL     : ${error.request?.url}
-`);
-    console.log(error);
-    if (error.status === 404) {
+    if (res.status === 302) {
+      // 302 = requester (octokit instance in this case) is not an org member, so membership can't be confirmed
+      membershipCache.set(senderLogin, false);
       return false;
     }
+    const isMember = res.status === 204;
+    membershipCache.set(senderLogin, isMember);
+    return isMember;
+  } catch (error: any) {
+    console.log(error);
+    if (error.status === 404) {
+      membershipCache.set(senderLogin, false);
+      return false;
+    }
+    throw error;
   }
 }
-//command to see if user droid-an is a member of codeyourfuture
-// console.log(await checkMembershipForUser("Droid-An", octokit));

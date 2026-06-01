@@ -68,20 +68,20 @@ server.post("/reaction/:id", checkJwt, requireCyfMember, async (req, res) => {
   if (!id || isNaN(Number(id))) {
     return res.status(400).json({ message: "Invalid or missing id" });
   }
+
+  const userId = Number(req.auth?.payload?.sub?.split("|")[1]);
+  const nickname = req.auth?.payload["https://yourapp.com/nickname"];
+
+  if (!nickname || typeof nickname !== "string") {
+    return res.status(400).json({ message: "Missing or invalid nickname" });
+  }
+
   try {
-    const existingFeedback = await fetchFeedbackFromUser(
-      req.body.userId,
-      Number(id),
-    );
+    const existingFeedback = await fetchFeedbackFromUser(userId, Number(id));
     if (existingFeedback.length > 0) {
       throw new Error("You cannot add more than one feedback to a comment");
     }
-    await rateFeedback(
-      Number(id),
-      req.body.reaction,
-      req.body.userId,
-      req.body.nickname,
-    );
+    await rateFeedback(Number(id), req.body.reaction, userId, nickname);
     res.json({
       message: `sent your ${req.body.reaction} to the post with id ${id}`,
     });

@@ -1,6 +1,6 @@
 import { Octokit } from "octokit";
-import { orgOctokit } from "./githubApp.js";
-import { AutoCleanupCache as TTLCache } from "./ttlCache.js";
+import { orgOctokit } from "../../githubApp.js";
+import { AutoCleanupCache as TTLCache } from "../../utils/ttlCache.js";
 
 const orgName = "CodeYourFuture";
 

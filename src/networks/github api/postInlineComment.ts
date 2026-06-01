@@ -1,7 +1,7 @@
 import { Octokit } from "octokit";
-import { AiResponseWithId } from "../types/aiResponse.js";
-import type { CreateReviewComment } from "../types/githubTypes.js";
-import { buildReviewCommentsArray } from "../utils/commentsToList.js";
+import { AiResponseWithId } from "../../types/aiResponse.js";
+import type { CreateReviewComment } from "../../types/githubTypes.js";
+import { buildReviewCommentsArray } from "../../utils/commentsToList.js";
 
 export async function postInlineComments(
   owner: string,

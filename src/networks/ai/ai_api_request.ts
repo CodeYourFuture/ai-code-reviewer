@@ -89,7 +89,7 @@ export function validateAiResponse(response: string): AiResponse {
 
 export async function runAiReview(
   files: PRFile[],
-): Promise<AiResponseWithId[]> {
+): Promise<ReviewWithPrompt[]> {
   const code = buildPRReviewPrompt({
     files,
   });
@@ -137,24 +137,22 @@ export async function runAiReview(
   console.log("\n==========================================\n");
   const validatedReview = validateFeedbackPoints(combinedReview, files);
   console.log("✅ Validation completed");
+  return validatedReview;
+}
+export async function persistReview(
+  review: ReviewWithPrompt[],
+  sha: string,
+): Promise<AiResponseWithId[]> {
   let reviewWithIds: AiResponseWithId[] = []; // Initialize it here to avoid unassigned variable error
-  //I put this condition here because sha can be string | null
-  if (
-    files[0].sha &&
-    validatedReview.some(
-      (response) => response.review.feedback_points.length > 0,
-    )
-  ) {
+  if (review.some((response) => response.review.feedback_points.length > 0)) {
     console.log("📝 Storing review to database...");
-    // files[0].sha contains the sha of the commit which ai reviewed
-    reviewWithIds = await storeReview(validatedReview, MODEL, files[0].sha);
+    reviewWithIds = await storeReview(review, MODEL, sha);
   } else {
     console.log("No review to store");
   }
   console.log("🏁 runAiReview completed");
   return reviewWithIds;
 }
-
 export function removeAdditionalLineNumbersAndSymbols(
   review: AiResponse,
 ): AiResponse {

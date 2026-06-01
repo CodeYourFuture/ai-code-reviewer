@@ -2,7 +2,7 @@ import fs from "node:fs";
 import path from "path";
 import { createInterface } from "readline";
 import { fileURLToPath } from "url";
-import { AiResponse } from "../types/aiResponse.js";
+import { ReviewWithPrompt } from "../types/aiResponse.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -10,12 +10,10 @@ const __dirname = path.dirname(__filename);
 export async function formAiOutputDataObject(
   parameters: object,
   model: string,
-  prompt: string[],
-  review: AiResponse[],
+  review: ReviewWithPrompt[],
 ) {
   const data = {
     parameters,
-    prompt,
     model,
     review,
   };

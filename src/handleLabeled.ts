@@ -2,11 +2,11 @@ import { RequestError } from "@octokit/request-error";
 import type { EmitterWebhookEvent } from "@octokit/webhooks";
 import { Octokit } from "octokit";
 import { checkMembershipForUser } from "./checkMembershipForUser.js";
-import { runAiReview } from "./networks/ai/ai_api_request.js";
+import { persistReview, runAiReview } from "./networks/ai/ai_api_request.js";
 import { getPRFiles, logPRFiles } from "./networks/github.js";
 import { postInlineComments } from "./networks/postInlineComment.js";
 import { postPRComment } from "./networks/postPrComment.js";
-import { AiResponseWithId } from "./types/aiResponse.js";
+import { AiResponseWithId, ReviewWithPrompt } from "./types/aiResponse.js";
 
 const messageForNewPRs = "Thanks for opening a new PR! AI started to review it";
 const messageWhenNoFeedback =
@@ -46,14 +46,20 @@ export async function handleLabeled(
       });
       const files = await getPRFiles(owner, repo, pullNumber, octokit);
       await logPRFiles(owner, repo, pullNumber, files);
-      const aiReview: AiResponseWithId[] = await runAiReview(files);
-      if (aiReview.some((response) => response.feedback_points.length > 0)) {
+      const aiReview: ReviewWithPrompt[] = await runAiReview(files);
+      const aiReviewWithId: AiResponseWithId[] = await persistReview(
+        aiReview,
+        commitId,
+      );
+      if (
+        aiReviewWithId.some((response) => response.feedback_points.length > 0)
+      ) {
         await postInlineComments(
           owner,
           repo,
           pullNumber,
           octokit,
-          aiReview,
+          aiReviewWithId,
           commitId,
         );
       } else {

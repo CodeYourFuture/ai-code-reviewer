@@ -16,5 +16,11 @@
     "noUnusedParameters": true
   },
   "include": ["src"],
-  "exclude": ["node_modules", "dist", "experiments", "**/*.test.ts"]
+  "exclude": [
+    "node_modules",
+    "dist",
+    "experiments",
+    "manual-tests",
+    "**/*.test.ts"
+  ]
 }

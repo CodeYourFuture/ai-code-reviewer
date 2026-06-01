@@ -13,8 +13,9 @@ import { buildPRReviewPrompt } from "../../utils/buildPRReviewPrompt.js";
 import { getSchema } from "../../utils/responseSchemas/getSchema.js";
 import { badCommentsPrompt, basePrompt, topics } from "../ai/prompt.js";
 import { askOpenRouterWithValidation } from "../ai/retryWithValidation.js";
-import { validateFeedbackPoints } from "../../validateFeedbackPoints.js";
+import { validateFeedbackPoints } from "../../validation/validateFeedbackPoints.js";
 import { storeReview } from "../../db/storeReview.js";
+import { removeAdditionalLineNumbersAndSymbols } from "../../validation/removeAdditionalLineNumbersAndSymbols.js";
 
 const openRouter = new OpenRouter({
   apiKey: env.OPENROUTER_API_KEY,
@@ -152,20 +153,4 @@ export async function persistReview(
   }
   console.log("🏁 runAiReview completed");
   return reviewWithIds;
-}
-export function removeAdditionalLineNumbersAndSymbols(
-  review: AiResponse,
-): AiResponse {
-  const sanitisedLineNumbers = review.feedback_points.flatMap((point) => {
-    const match = point.line_numbers[0].match(/\d+(?:-\d+)?/);
-    if (!match) return [];
-    return [
-      {
-        ...point,
-        line_numbers: [match[0], ...point.line_numbers.slice(1)],
-      },
-    ];
-  });
-
-  return { ...review, feedback_points: sanitisedLineNumbers };
 }

@@ -2,16 +2,16 @@ import { createNodeMiddleware } from "@octokit/webhooks";
 import express from "express";
 import { env } from "./config/env.js";
 import { githubApp } from "./githubApp.js";
-import { rateFeedback } from "./sendRate.js";
+import { rateFeedback } from "./db/sendRate.js";
 import cors from "cors";
-import { fetchFeedbackFromUser } from "./fetchUserFeedback.js";
+import { fetchFeedbackFromUser } from "./db/fetchUserFeedback.js";
 import {
   auth,
   InvalidTokenError,
   UnauthorizedError,
 } from "express-oauth2-jwt-bearer";
 import { Request, Response, NextFunction } from "express";
-import { checkMembershipForUser } from "./checkMembershipForUser.js";
+import { checkMembershipForUser } from "./networks/githubApi/checkMembershipForUser.js";
 import { DatabaseError } from "pg";
 
 const path = "/api/webhook";

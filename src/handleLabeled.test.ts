@@ -3,9 +3,9 @@ import type { Octokit } from "octokit";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { handleLabeled } from "./handleLabeled.js";
 import { runAiReview } from "./networks/ai/ai_api_request.js";
-import { getPRFiles } from "./networks/github.js";
-import { postInlineComments } from "./networks/postInlineComment.js";
-import { postPRComment } from "./networks/postPrComment.js";
+import { getPRFiles } from "./networks/githubApi/github.js";
+import { postInlineComments } from "./networks/githubApi/postInlineComment.js";
+import { postPRComment } from "./networks/githubApi/postPrComment.js";
 
 function makeEvent(labelName: string, sha = "abc123") {
   return {

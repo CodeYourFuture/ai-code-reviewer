@@ -1,5 +1,5 @@
-//TEST
-//This is how I check that this function construct proper request to post inline comments
+// TEST
+// This is how I check that this function construct proper request to post inline comments
 // TODO: write better tests, so that I don't have to trigger api
 // import { octokit } from "../testApp.js";
 // import type { AiResponse } from "../types/aiResponse.js";

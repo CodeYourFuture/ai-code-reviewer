@@ -58,6 +58,24 @@ This app uses Auth0 for authentication with GitHub as the login provider. The fr
 3. Create an API (Backend)
    1. Go to Applications → APIs → Create API
    - You can use any URL as an identifier, it doesn't matter. It will be your `AUTH0_AUDIENCE` in the backend and `VITE_AUTH0_AUDIENCE` in the frontend
+   2. Add Action that will add `nickname` claim to the token payload
+      1. Go to Dashboard - Actions - Library
+      2. Click `Create Action` - `Create Custom Action`
+      3. Add following script and deploy:
+
+         ```bash
+         exports.onExecutePostLogin = async (event, api) => {
+               api.accessToken.setCustomClaim(
+               "https://yourapp.com/nickname",
+               event.user.nickname
+            );
+         };
+         ```
+
+      4. Than go to Actions - Triggers
+      5. Select `post-login` trigger
+      6. In the workflow, add new custom action between `Start` and `Complete` steps
+      7. Apply
 
 ### Environment Setup
 

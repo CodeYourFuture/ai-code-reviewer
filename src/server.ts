@@ -11,6 +11,8 @@ import {
   UnauthorizedError,
 } from "express-oauth2-jwt-bearer";
 import { Request, Response, NextFunction } from "express";
+import { checkMembershipForUser } from "./checkMembershipForUser.js";
+import { DatabaseError } from "pg";
 
 const path = "/api/webhook";
 
@@ -27,11 +29,41 @@ const checkJwt = auth({
   issuerBaseURL: `https://${env.AUTH0_DOMAIN}`,
 });
 
+async function requireCyfMember(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) {
+  const githubId = req.auth?.payload?.sub?.split("|")[1];
+  const nickname = req.auth?.payload["https://yourapp.com/nickname"];
+
+  if (!githubId || isNaN(Number(githubId))) {
+    return res
+      .status(400)
+      .json({ message: "Missing or invalid Github user ID" });
+  }
+
+  if (!nickname || typeof nickname !== "string") {
+    return res
+      .status(400)
+      .json({ message: "Missing or invalid Github user nickname" });
+  }
+
+  try {
+    const isMember = await checkMembershipForUser(nickname);
+    if (isMember) return next();
+    return res.status(403).json({ message: "Not a CodeYourFuture member" });
+  } catch (e) {
+    console.error(e);
+    return res.status(502).json({ message: "Membership check failed" });
+  }
+}
+
 server.get("/health", (_, res) => {
   res.json({ status: "ok", message: "Server is healthy" });
 });
 
-server.post("/reaction/:id", checkJwt, async (req, res) => {
+server.post("/reaction/:id", checkJwt, requireCyfMember, async (req, res) => {
   const { id } = req.params;
   if (!id || isNaN(Number(id))) {
     return res.status(400).json({ message: "Invalid or missing id" });
@@ -60,18 +92,23 @@ server.post("/reaction/:id", checkJwt, async (req, res) => {
   }
 });
 
-server.get("/hasUserRatedComment/:id", checkJwt, async (req, res) => {
-  const { id } = req.params;
-  if (!id || isNaN(Number(id))) {
-    return res.status(400).json({ message: "Invalid or missing id" });
-  }
-  const existingFeedback = await fetchFeedbackFromUser(
-    Number(req.auth?.payload?.sub?.split("|")[1]),
-    Number(id),
-  );
+server.get(
+  "/hasUserRatedComment/:id",
+  checkJwt,
+  requireCyfMember,
+  async (req, res) => {
+    const { id } = req.params;
+    if (!id || isNaN(Number(id))) {
+      return res.status(400).json({ message: "Invalid or missing id" });
+    }
+    const existingFeedback = await fetchFeedbackFromUser(
+      Number(req.auth?.payload?.sub?.split("|")[1]),
+      Number(id),
+    );
 
-  res.status(200).json({ message: Object.keys(existingFeedback).length > 0 });
-});
+    res.status(200).json({ message: Object.keys(existingFeedback).length > 0 });
+  },
+);
 
 server.use(
   (
@@ -103,6 +140,7 @@ server.use(
     response.status(status).json({ message });
   },
 );
+
 server.listen(env.PORT, () => {
   console.log(`Server running on port ${env.PORT}`);
 });

@@ -11,7 +11,7 @@ import {
   UnauthorizedError,
 } from "express-oauth2-jwt-bearer";
 import { Request, Response, NextFunction } from "express";
-import { checkMembershipForUser } from "./networks/github api/checkMembershipForUser.js";
+import { checkMembershipForUser } from "./networks/githubApi/checkMembershipForUser.js";
 import { DatabaseError } from "pg";
 
 const path = "/api/webhook";

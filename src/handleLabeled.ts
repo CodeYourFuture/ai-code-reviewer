@@ -1,11 +1,11 @@
 import { RequestError } from "@octokit/request-error";
 import type { EmitterWebhookEvent } from "@octokit/webhooks";
 import { Octokit } from "octokit";
-import { checkMembershipForUser } from "./networks/github api/checkMembershipForUser.js";
+import { checkMembershipForUser } from "./networks/githubApi/checkMembershipForUser.js";
 import { persistReview, runAiReview } from "./networks/ai/ai_api_request.js";
-import { getPRFiles, logPRFiles } from "./networks/github api/github.js";
-import { postInlineComments } from "./networks/github api/postInlineComment.js";
-import { postPRComment } from "./networks/github api/postPrComment.js";
+import { getPRFiles, logPRFiles } from "./networks/githubApi/github.js";
+import { postInlineComments } from "./networks/githubApi/postInlineComment.js";
+import { postPRComment } from "./networks/githubApi/postPrComment.js";
 import { AiResponseWithId, ReviewWithPrompt } from "./types/aiResponse.js";
 
 const messageForNewPRs = "Thanks for opening a new PR! AI started to review it";

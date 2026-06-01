@@ -1,4 +1,4 @@
-import { formReviewParams } from "../networks/github api/postInlineComment.js";
+import { formReviewParams } from "../networks/githubApi/postInlineComment.js";
 import { FeedbackPointWithId } from "../types/aiResponse.js";
 import type { CreateReviewComment } from "../types/githubTypes.js";
 import { extractReviewParams } from "../utils/extractReviewParams.js";

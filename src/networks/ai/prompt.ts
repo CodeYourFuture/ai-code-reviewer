@@ -16,7 +16,7 @@ Prefer simple, direct code when it is already readable.
 Never leave line_numbers empty unless the issue is conceptual and applies to the entire file.
 You MUST evaluate the code against EVERY topic listed`;
 
-export const topics: string[] = [
+export const codeQualityTopics: string[] = [
   "Duplicated code which can be moved into functions so they can be referenced from multiple places",
   "More than 6 levels of Deep Nesting",
   "Returning true or false from a condition, e.g `if (someExpression) { return true; } else { return false; }`",
@@ -42,6 +42,9 @@ One file can have multiple feedback points.
 If the code is correct, do not comment.
 Never leave line_numbers empty. 
 Evaluate the code against this topics: 
-- Code is already simple and obvious and no need to add a comment.
-- Code can be rewritten so it doesn't need a comment anymore.
 `;
+//ai gives nice comments regarding the comments already, so there is no need to create more topics and spend more tokens reviewing each
+export const commentsQualityTopics: string[] = [
+  `- Code is already simple and obvious and no need to add a comment.
+- Code can be rewritten so it doesn't need a comment anymore.`,
+];

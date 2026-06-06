@@ -11,7 +11,12 @@ import {
 import { PRFile } from "../../types/githubTypes.js";
 import { prepareCodeForReview } from "../../utils/prepareCodeForReview.js";
 import { getSchema } from "../../utils/responseSchemas/getSchema.js";
-import { badCommentsPrompt, basePrompt, topics } from "../ai/prompt.js";
+import {
+  badCommentsPrompt,
+  basePrompt,
+  codeQualityTopics,
+  commentsQualityTopics,
+} from "../ai/prompt.js";
 import { askOpenRouterWithValidation } from "../ai/retryWithValidation.js";
 import { validateFeedbackPoints } from "../../validation/validateFeedbackPoints.js";
 import { storeReview } from "../../db/storeReview.js";
@@ -63,6 +68,16 @@ function getSystemPrompt(type: string): string | null {
       return codeQualityPrompt;
     case "comments quality":
       return commentQualityPrompt;
+    default:
+      return null;
+  }
+}
+function getTopics(feedbackType: string): string[] | null {
+  switch (feedbackType.toLowerCase()) {
+    case "code quality":
+      return codeQualityTopics;
+    case "comments quality":
+      return commentsQualityTopics;
     default:
       return null;
   }

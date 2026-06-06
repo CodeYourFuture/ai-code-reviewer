@@ -9,7 +9,7 @@ import {
   ReviewWithPrompt,
 } from "../../types/aiResponse.js";
 import { PRFile } from "../../types/githubTypes.js";
-import { buildPRReviewPrompt } from "../../utils/buildPRReviewPrompt.js";
+import { prepareCodeForReview } from "../../utils/prepareCodeForReview.js";
 import { getSchema } from "../../utils/responseSchemas/getSchema.js";
 import { badCommentsPrompt, basePrompt, topics } from "../ai/prompt.js";
 import { askOpenRouterWithValidation } from "../ai/retryWithValidation.js";
@@ -96,7 +96,7 @@ export function validateAiResponse(response: string): AiResponse {
 export async function runAiReview(
   files: PRFile[],
 ): Promise<ReviewWithPrompt[]> {
-  const code = buildPRReviewPrompt({
+  const code = prepareCodeForReview({
     files,
   });
 

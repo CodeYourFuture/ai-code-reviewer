@@ -20,7 +20,7 @@ import { removeAdditionalLineNumbersAndSymbols } from "../../validation/removeAd
 const openRouter = new OpenRouter({
   apiKey: env.OPENROUTER_API_KEY,
 });
-// const FreeModel = "arcee-ai/trinity-large-preview:free";
+
 export const MODEL = "openai/gpt-5.1";
 export const codeQualityPrompt = `${basePrompt}
         Topics are: \n- ${topics.join(`\n- `)}`;
@@ -89,7 +89,6 @@ export async function aiCall(
 }
 
 export function validateAiResponse(response: string): AiResponse {
-  console.log("validating response");
   const parsed = JSON.parse(response);
   return AiResponseSchema.parse(parsed);
 }
@@ -100,8 +99,6 @@ export async function runAiReview(
   const code = buildPRReviewPrompt({
     files,
   });
-  console.log("--------- CODE --------\n", code);
-  console.log("\n🤖 Sending PR diff to OpenRouter for review...\n");
 
   const feedbackPromises = FEEDBACK_TYPES.map((type) =>
     askOpenRouterWithValidation(code, type).then((review) => ({
@@ -127,7 +124,7 @@ export async function runAiReview(
       );
     }
   });
-  console.log("✅ Severity filtering completed");
+
   if (
     combinedReview.some(
       (response) => response.review.feedback_points.length > 0,
@@ -138,25 +135,21 @@ export async function runAiReview(
       prompt: reviewWithPrompt.prompt,
     }));
   }
-  console.log("✅ Line number removal completed");
-  console.log("\n================ PR REVIEW ================\n");
-  console.log(JSON.stringify(combinedReview, null, 2));
-  console.log("\n==========================================\n");
+
   const validatedReview = validateFeedbackPoints(combinedReview, files);
-  console.log("✅ Validation completed");
+
   return validatedReview;
 }
+
 export async function persistReview(
   review: ReviewWithPrompt[],
   sha: string,
 ): Promise<AiResponseWithId[]> {
   let reviewWithIds: AiResponseWithId[] = []; // Initialize it here to avoid unassigned variable error
   if (review.some((response) => response.review.feedback_points.length > 0)) {
-    console.log("📝 Storing review to database...");
     reviewWithIds = await storeReview(review, MODEL, sha);
   } else {
-    console.log("No review to store");
   }
-  console.log("🏁 runAiReview completed");
+
   return reviewWithIds;
 }

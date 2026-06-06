@@ -157,7 +157,10 @@ export async function runAiReview(
     )
   ) {
     combinedReview = combinedReview.map((reviewWithPrompt) => ({
-      review: removeAdditionalLineNumbersAndSymbols(reviewWithPrompt.review),
+      review:
+        reviewWithPrompt.review.feedback_points.length > 0
+          ? removeAdditionalLineNumbersAndSymbols(reviewWithPrompt.review)
+          : reviewWithPrompt.review,
       prompt: reviewWithPrompt.prompt,
     }));
   }

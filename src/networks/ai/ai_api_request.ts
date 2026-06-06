@@ -28,6 +28,12 @@ export const commentQualityPrompt = badCommentsPrompt;
 export const defaultChatParameters: Partial<ChatGenerationParams> = {
   temperature: 0,
   model: MODEL,
+  reasoning: {
+    effort: "high",
+  },
+  provider: {
+    requireParameters: true,
+  },
   responseFormat: {
     type: "json_schema",
     jsonSchema: getSchema,

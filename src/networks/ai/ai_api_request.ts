@@ -27,18 +27,15 @@ const openRouter = new OpenRouter({
 });
 
 export const MODEL = "openai/gpt-5.1";
-export const codeQualityPrompt = `${basePrompt}
-        Topics are: \n- ${topics.join(`\n- `)}`;
+export const codeQualityPrompt = basePrompt;
 export const commentQualityPrompt = badCommentsPrompt;
 export const defaultChatParameters: Partial<ChatGenerationParams> = {
   temperature: 0,
   model: MODEL,
   reasoning: {
-    effort: "high",
+    effort: "medium",
   },
-  provider: {
-    requireParameters: true,
-  },
+  maxCompletionTokens: 4000,
   responseFormat: {
     type: "json_schema",
     jsonSchema: getSchema,
@@ -50,13 +47,18 @@ const FEEDBACK_TYPE_PROMPTS: Record<string, string> = {
   "comments quality": commentQualityPrompt,
 };
 
-function buildMessages(code: string, feedbackType: string): Message[] {
+function buildMessages(
+  code: string,
+  feedbackType: string,
+  topic: string,
+): Message[] {
   const userMessage: Message = {
     role: "user",
     content: code,
   };
 
-  const systemPrompt = getSystemPrompt(feedbackType);
+  const systemPrompt = `${getSystemPrompt(feedbackType)}
+  Topic is: ${topic}`;
   return systemPrompt
     ? [{ role: "system", content: systemPrompt }, userMessage]
     : [userMessage];
@@ -72,22 +74,18 @@ function getSystemPrompt(type: string): string | null {
       return null;
   }
 }
-function getTopics(feedbackType: string): string[] | null {
+function getTopics(feedbackType: string): string[] {
   switch (feedbackType.toLowerCase()) {
     case "code quality":
       return codeQualityTopics;
     case "comments quality":
       return commentsQualityTopics;
     default:
-      return null;
+      return ["no topics"];
   }
 }
 
-export async function aiCall(
-  code: string,
-  feedbackType: string,
-): Promise<string> {
-  const messages: Message[] = buildMessages(code, feedbackType);
+export async function aiCall(messages: Message[]): Promise<string> {
   const completion = await openRouter.chat.send({
     ...defaultChatParameters,
     messages: messages,
@@ -115,12 +113,25 @@ export async function runAiReview(
     files,
   });
 
-  const feedbackPromises = FEEDBACK_TYPES.map((type) =>
-    askOpenRouterWithValidation(code, type).then((review) => ({
+  const feedbackPromises = FEEDBACK_TYPES.flatMap((type) => {
+    //construct messages here to keep ai call flow simple
+    console.log("current type ", type);
+    const responsePromises = [];
+    const topics = getTopics(type);
+
+    for (const topic of topics) {
+      console.log("current topic", topic);
+      const messages: Message[] = buildMessages(code, type, topic);
+      responsePromises.push(
+        askOpenRouterWithValidation(messages).then((review) => ({
       review,
-      prompt: FEEDBACK_TYPE_PROMPTS[type.toLowerCase()],
+          prompt:
+            FEEDBACK_TYPE_PROMPTS[type.toLowerCase()] + ` Topic is: ` + topic,
     })),
   );
+    }
+    return responsePromises;
+  });
 
   const results = await Promise.allSettled(feedbackPromises);
 

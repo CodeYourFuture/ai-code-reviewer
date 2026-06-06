@@ -17,6 +17,7 @@ export async function askOpenRouterWithValidation(
       }
 
       console.log(`Invalid JSON returned, retrying AI request...`);
+      console.error(error);
     }
   }
 

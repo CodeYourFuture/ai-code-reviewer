@@ -25,13 +25,14 @@ import { removeAdditionalLineNumbersAndSymbols } from "../../validation/removeAd
 const openRouter = new OpenRouter({
   apiKey: env.OPENROUTER_API_KEY,
 });
-
+// export const MODEL = "nvidia/nemotron-3-ultra-550b-a55b:free";
 export const MODEL = "openai/gpt-5.1";
 export const codeQualityPrompt = basePrompt;
 export const commentQualityPrompt = badCommentsPrompt;
 export const defaultChatParameters: Partial<ChatGenerationParams> = {
   temperature: 0,
   model: MODEL,
+  // commented out because free models can't understand these properties
   reasoning: {
     effort: "medium",
   },
@@ -124,11 +125,11 @@ export async function runAiReview(
       const messages: Message[] = buildMessages(code, type, topic);
       responsePromises.push(
         askOpenRouterWithValidation(messages).then((review) => ({
-      review,
+          review,
           prompt:
             FEEDBACK_TYPE_PROMPTS[type.toLowerCase()] + ` Topic is: ` + topic,
-    })),
-  );
+        })),
+      );
     }
     return responsePromises;
   });
@@ -150,6 +151,7 @@ export async function runAiReview(
       );
     }
   });
+  console.log(combinedReview);
 
   if (
     combinedReview.some(

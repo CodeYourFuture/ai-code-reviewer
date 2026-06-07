@@ -34,7 +34,7 @@ export const defaultChatParameters: Partial<ChatGenerationParams> = {
   model: MODEL,
   // commented out because free models can't understand these properties
   reasoning: {
-    effort: "medium",
+    effort: "low",
   },
   maxCompletionTokens: 4000,
   responseFormat: {
@@ -99,6 +99,10 @@ export async function aiCall(messages: Message[]): Promise<string> {
   if (typeof res !== "string") {
     throw new Error("Content returned from OpenRouter is not string");
   }
+  console.log("===== resposnse =====");
+  console.log(JSON.stringify(completion.choices[0]?.message, null, 2));
+  console.log("===== reasoning =====");
+  console.log(completion.choices[0]?.message?.reasoning);
   return res;
 }
 
@@ -143,6 +147,7 @@ export async function runAiReview(
       combinedReview.push(result.value);
     }
   });
+  console.log(JSON.stringify(combinedReview, null, 4));
   const SEVERITY_THRESHOLD = 2;
   combinedReview.forEach((review) => {
     if (review.review.feedback_type != "comments quality") {
@@ -151,7 +156,6 @@ export async function runAiReview(
       );
     }
   });
-  console.log(combinedReview);
 
   if (
     combinedReview.some(

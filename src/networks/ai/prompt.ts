@@ -12,7 +12,7 @@ Do not reframe suggestions as advice (e.g., "it's good to be aware..."). If it i
 Encourage the author to think about improvements rather than prescribing exact solutions.
 You should reply with a JSON object containing feedback on the code only on the topics that you have been assigned to below.
 One file can have multiple feedback points.
-Prefer simple, direct code when it is already readable.
+Do not write code in the feedback text.
 Never leave line_numbers empty unless the issue is conceptual and applies to the entire file.
 You MUST evaluate the code against EVERY topic listed`;
 
@@ -21,7 +21,7 @@ export const codeQualityTopics: string[] = [
   "More than 6 levels of Deep Nesting",
   "Returning true or false from a condition, e.g `if (someExpression) { return true; } else { return false; }`",
   "Variables that are incorrectly scoped causing bugs",
-  "Making temporary variables which could be directly returned without improved clarity",
+  "Making temporary variables used only once before their immediate use or which could be directly returned without improved clarity. This topic is quite important",
   "Bad naming that deceives the reader about what variable stores or function logic ",
 ];
 

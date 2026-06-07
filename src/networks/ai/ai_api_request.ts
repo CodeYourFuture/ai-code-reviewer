@@ -139,11 +139,9 @@ export async function runAiReview(
   const feedbackPromises: Record<string, Promise<ReviewWithPrompt>> = {};
 
   for (const type of FEEDBACK_TYPES) {
-    console.log("current type", type);
     const topics = getTopics(type);
 
     const topicPromises = topics.map((topic) => {
-      console.log("current topic", topic);
       const messages: Message[] = buildMessages(code, type, topic);
       const requestParams = {
         ...defaultChatParameters,

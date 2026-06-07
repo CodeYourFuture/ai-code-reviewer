@@ -4,7 +4,6 @@ import { env } from "../../config/env.js";
 import {
   AiResponse,
   AiResponseSchema,
-  AiResponseWithId,
   FEEDBACK_TYPES,
   ReviewWithPrompt,
 } from "../../types/aiResponse.js";
@@ -19,7 +18,6 @@ import {
 } from "../ai/prompt.js";
 import { askOpenRouterWithValidation } from "../ai/retryWithValidation.js";
 import { validateFeedbackPoints } from "../../validation/validateFeedbackPoints.js";
-import { storeReview } from "../../db/storeReview.js";
 import { removeAdditionalLineNumbersAndSymbols } from "../../validation/removeAdditionalLineNumbersAndSymbols.js";
 
 const openRouter = new OpenRouter({
@@ -214,17 +212,4 @@ export async function runAiReview(
   const validatedReview = validateFeedbackPoints(combinedReview, files);
 
   return validatedReview;
-}
-
-export async function persistReview(
-  review: ReviewWithPrompt[],
-  sha: string,
-): Promise<AiResponseWithId[]> {
-  let reviewWithIds: AiResponseWithId[] = []; // Initialize it here to avoid unassigned variable error
-  if (review.some((response) => response.review.feedback_points.length > 0)) {
-    reviewWithIds = await storeReview(review, MODEL, sha);
-  } else {
-  }
-
-  return reviewWithIds;
 }

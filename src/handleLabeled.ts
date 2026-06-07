@@ -74,14 +74,7 @@ export async function handleLabeled(
         });
       }
     } catch (error) {
-      if (error instanceof RequestError) {
-        if (error.response) {
-          console.error(
-            `Error! Status: ${error.response.status}. Message: ${error.response.data}`,
-          );
-        }
-        console.error(error);
-      }
+      console.error(error);
     }
   } else {
     console.log(`Received label "${label}" isn't "Needs Review"`);

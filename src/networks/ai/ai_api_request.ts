@@ -33,14 +33,18 @@ export const defaultChatParameters: Partial<ChatGenerationParams> = {
   temperature: 0,
   model: MODEL,
   // commented out because free models can't understand these properties
-  reasoning: {
-    effort: "low",
-  },
-  maxCompletionTokens: 4000,
   responseFormat: {
     type: "json_schema",
     jsonSchema: getSchema,
   },
+};
+export const codeQualityParametersAddons: Partial<ChatGenerationParams> = {
+  reasoning: {
+    effort: "low",
+  },
+};
+export const commentsQualityParametersAddons: Partial<ChatGenerationParams> = {
+  maxCompletionTokens: 2000, //I don't want to burn tokens to get lots of feedback about code comments if I will filter them out when there are more than 3 feedback points
 };
 
 const FEEDBACK_TYPE_PROMPTS: Record<string, string> = {
@@ -86,9 +90,25 @@ function getTopics(feedbackType: string): string[] {
   }
 }
 
-export async function aiCall(messages: Message[]): Promise<string> {
+function getRequestParams(
+  feedbackType: string,
+): Partial<ChatGenerationParams> | null {
+  switch (feedbackType.toLowerCase()) {
+    case "code quality":
+      return codeQualityParametersAddons;
+    case "comments quality":
+      return commentsQualityParametersAddons;
+    default:
+      return null;
+  }
+}
+
+export async function aiCall(
+  messages: Message[],
+  requestParams: Partial<ChatGenerationParams>,
+): Promise<string> {
   const completion = await openRouter.chat.send({
-    ...defaultChatParameters,
+    ...requestParams,
     messages: messages,
     stream: false,
   });
@@ -127,8 +147,13 @@ export async function runAiReview(
     for (const topic of topics) {
       console.log("current topic", topic);
       const messages: Message[] = buildMessages(code, type, topic);
+      const requestParams = {
+        ...defaultChatParameters,
+        ...(getRequestParams(type) ?? {}),
+      };
+      console.log("======= req params ========\n", requestParams);
       responsePromises.push(
-        askOpenRouterWithValidation(messages).then((review) => ({
+        askOpenRouterWithValidation(messages, requestParams).then((review) => ({
           review,
           prompt:
             FEEDBACK_TYPE_PROMPTS[type.toLowerCase()] + ` Topic is: ` + topic,

@@ -41,6 +41,7 @@ You should reply with a JSON object containing feedback on the code comments.
 One file can have multiple feedback points.
 If the code is correct, do not comment.
 Never leave line_numbers empty. 
+If you find yourself making more than four comments, stop and return just four comments
 Evaluate the code against this topics: 
 `;
 //ai gives nice comments regarding the comments already, so there is no need to create more topics and spend more tokens reviewing each

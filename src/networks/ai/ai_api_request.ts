@@ -151,14 +151,15 @@ export async function runAiReview(
         ...defaultChatParameters,
         ...(getRequestParams(type) ?? {}),
       };
+      const prompt =
+        FEEDBACK_TYPE_PROMPTS[type.toLowerCase()] + ` Topic is: ` + topic;
       console.log("======= req params ========\n", requestParams);
-      responsePromises.push(
-        askOpenRouterWithValidation(messages, requestParams).then((review) => ({
-          review,
-          prompt:
-            FEEDBACK_TYPE_PROMPTS[type.toLowerCase()] + ` Topic is: ` + topic,
-        })),
-      );
+
+      const responsePromise = askOpenRouterWithValidation(
+        messages,
+        requestParams,
+      ).then((review) => ({ review, prompt }));
+      responsePromises.push(responsePromise);
     }
     return responsePromises;
   });
@@ -166,12 +167,26 @@ export async function runAiReview(
   const results = await Promise.allSettled(feedbackPromises);
 
   let combinedReview: ReviewWithPrompt[] = [];
+  const failures = results.filter((r) => r.status === "rejected");
 
-  results.forEach((result) => {
-    if (result.status === "fulfilled") {
-      combinedReview.push(result.value);
-    }
-  });
+  const successes = results.filter((r) => r.status === "fulfilled");
+
+  if (successes.length === 0) {
+    console.warn("All feedback requests failed");
+    throw failures[0].reason;
+  }
+
+  if (failures.length > 0) {
+    console.warn(
+      `${failures.length} requests failed, continuing with ${successes.length} results`,
+    );
+    failures.forEach((f, i) => {
+      console.error(`Failure ${i + 1}:`, f.reason);
+    });
+  }
+  successes.forEach((result) => combinedReview.push(result.value));
+
+  console.log("====== Combined review ========");
   console.log(JSON.stringify(combinedReview, null, 4));
   const SEVERITY_THRESHOLD = 2;
   combinedReview.forEach((review) => {

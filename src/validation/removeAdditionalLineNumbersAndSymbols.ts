@@ -1,8 +1,11 @@
-import { AiResponse } from "../types/aiResponse.js";
+import {
+  FeedbackPointWithTopic,
+  ReviewWithPrompt,
+} from "../types/aiResponse.js";
 
 export function removeAdditionalLineNumbersAndSymbols(
-  review: AiResponse,
-): AiResponse {
+  review: ReviewWithPrompt,
+): FeedbackPointWithTopic[] {
   const sanitisedLineNumbers = review.feedback_points.flatMap((point) => {
     if (!point.line_numbers?.length) return [];
 
@@ -16,5 +19,5 @@ export function removeAdditionalLineNumbersAndSymbols(
     ];
   });
 
-  return { ...review, feedback_points: sanitisedLineNumbers };
+  return sanitisedLineNumbers;
 }

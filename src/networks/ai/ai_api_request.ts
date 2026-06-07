@@ -136,37 +136,39 @@ export async function runAiReview(
     files,
   });
 
-  const feedbackPromises = FEEDBACK_TYPES.flatMap((type) => {
-    //construct messages here to keep ai call flow simple
-    console.log("current type ", type);
-    const responsePromises = [];
+  const feedbackPromises: Record<string, Promise<ReviewWithPrompt>> = {};
+
+  for (const type of FEEDBACK_TYPES) {
+    console.log("current type", type);
     const topics = getTopics(type);
 
-    for (const topic of topics) {
+    const topicPromises = topics.map((topic) => {
       console.log("current topic", topic);
       const messages: Message[] = buildMessages(code, type, topic);
       const requestParams = {
         ...defaultChatParameters,
         ...(getRequestParams(type) ?? {}),
       };
-      const prompt =
-        FEEDBACK_TYPE_PROMPTS[type.toLowerCase()] + ` Topic is: ` + topic;
-      console.log("======= req params ========\n", requestParams);
 
-      const responsePromise = askOpenRouterWithValidation(
-        messages,
-        requestParams,
-      ).then((review) => ({ review, prompt }));
-      responsePromises.push(responsePromise);
-    }
-    return responsePromises;
-  });
+      return askOpenRouterWithValidation(messages, requestParams).then(
+        (review) =>
+          review.feedback_points.map((point) => ({
+            ...point,
+            topic,
+          })),
+      );
+    });
+    feedbackPromises[type] = Promise.all(topicPromises).then((allPoints) => ({
+      feedback_type: type as ReviewWithPrompt["feedback_type"],
+      feedback_points: allPoints.flat(),
+      prompt: FEEDBACK_TYPE_PROMPTS[type.toLowerCase()],
+    }));
+  }
 
-  const results = await Promise.allSettled(feedbackPromises);
+  const results = await Promise.allSettled(Object.values(feedbackPromises));
 
   let combinedReview: ReviewWithPrompt[] = [];
   const failures = results.filter((r) => r.status === "rejected");
-
   const successes = results.filter((r) => r.status === "fulfilled");
 
   if (successes.length === 0) {
@@ -178,34 +180,29 @@ export async function runAiReview(
     console.warn(
       `${failures.length} requests failed, continuing with ${successes.length} results`,
     );
-    failures.forEach((f, i) => {
-      console.error(`Failure ${i + 1}:`, f.reason);
-    });
+    failures.forEach((f, i) => console.error(`Failure ${i + 1}:`, f.reason));
   }
+
   successes.forEach((result) => combinedReview.push(result.value));
 
   console.log("====== Combined review ========");
   console.log(JSON.stringify(combinedReview, null, 4));
   const SEVERITY_THRESHOLD = 2;
   combinedReview.forEach((review) => {
-    if (review.review.feedback_type != "comments quality") {
-      review.review.feedback_points = review.review.feedback_points.filter(
+    if (review.feedback_type != "comments quality") {
+      review.feedback_points = review.feedback_points.filter(
         (point) => point.severity > SEVERITY_THRESHOLD,
       );
     }
   });
 
-  if (
-    combinedReview.some(
-      (response) => response.review.feedback_points.length > 0,
-    )
-  ) {
+  if (combinedReview.some((response) => response.feedback_points.length > 0)) {
     combinedReview = combinedReview.map((reviewWithPrompt) => ({
-      review:
-        reviewWithPrompt.review.feedback_points.length > 0
-          ? removeAdditionalLineNumbersAndSymbols(reviewWithPrompt.review)
-          : reviewWithPrompt.review,
-      prompt: reviewWithPrompt.prompt,
+      ...reviewWithPrompt,
+      feedback_points:
+        reviewWithPrompt.feedback_points.length > 0
+          ? removeAdditionalLineNumbersAndSymbols(reviewWithPrompt)
+          : reviewWithPrompt.feedback_points,
     }));
   }
 

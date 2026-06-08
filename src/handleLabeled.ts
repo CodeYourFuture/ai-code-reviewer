@@ -7,6 +7,7 @@ import { postInlineComments } from "./networks/githubApi/postInlineComment.js";
 import { postPRComment } from "./networks/githubApi/postPrComment.js";
 import { AiResponseWithId, ReviewWithPrompt } from "./types/aiResponse.js";
 import { storeReview } from "./db/storeReview.js";
+import { haveCommentedAlready } from "./networks/githubApi/haveCommentedAlready.js";
 
 const messageForNewPRs = "Thanks for opening a new PR! AI started to review it";
 const messageWhenNoFeedback =
@@ -29,12 +30,22 @@ export async function handleLabeled(
     console.log("sender isn't a member of cyf");
     return;
   }
+  const owner = payload.repository.owner.login;
+  const repo = payload.repository.name;
+  const pullNumber = payload.pull_request.number;
+  if (
+    process.env.NODE_ENV === "production" &&
+    (await haveCommentedAlready(owner, repo, pullNumber, octokit))
+  ) {
+    console.log("This reviewer only review prs once");
+    return;
+  }
 
   if (label?.toLocaleLowerCase() === "needs review") {
     try {
-      const owner = payload.repository.owner.login;
-      const repo = payload.repository.name;
-      const pullNumber = payload.pull_request.number;
+      // const owner = payload.repository.owner.login;
+      // const repo = payload.repository.name;
+      // const pullNumber = payload.pull_request.number;
       const commitId = payload.pull_request.head.sha;
 
       await postPRComment({

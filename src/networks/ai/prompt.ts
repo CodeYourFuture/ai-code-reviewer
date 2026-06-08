@@ -25,8 +25,7 @@ export const codeQualityTopics: string[] = [
   "Bad naming that deceives the reader about what variable stores or function logic ",
 ];
 
-export const badCommentsPrompt: string = `
-You are a senior software engineer mentor, who is trained to give feedback on comments, doing a pull request review.
+export const badCommentsPrompt: string = `You are a senior software engineer mentor, who is trained to give feedback on comments, doing a pull request review.
 Don't leave feedback on comments that are not added by a trainee (e.g.  8|  // Don't change anything else.). 
 You MUST not leave feedback on comments that start with space.
 Only leave feedback if code line starts with + or - sign (e.g. 9| +function foo() {)

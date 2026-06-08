@@ -1,12 +1,12 @@
-import { RequestError } from "@octokit/request-error";
 import type { EmitterWebhookEvent } from "@octokit/webhooks";
 import { Octokit } from "octokit";
 import { checkMembershipForUser } from "./networks/githubApi/checkMembershipForUser.js";
-import { persistReview, runAiReview } from "./networks/ai/ai_api_request.js";
+import { MODEL, runAiReview } from "./networks/ai/ai_api_request.js";
 import { getPRFiles, logPRFiles } from "./networks/githubApi/github.js";
 import { postInlineComments } from "./networks/githubApi/postInlineComment.js";
 import { postPRComment } from "./networks/githubApi/postPrComment.js";
 import { AiResponseWithId, ReviewWithPrompt } from "./types/aiResponse.js";
+import { storeReview } from "./db/storeReview.js";
 
 const messageForNewPRs = "Thanks for opening a new PR! AI started to review it";
 const messageWhenNoFeedback =
@@ -47,8 +47,9 @@ export async function handleLabeled(
       const files = await getPRFiles(owner, repo, pullNumber, octokit);
       await logPRFiles(owner, repo, pullNumber, files);
       const aiReview: ReviewWithPrompt[] = await runAiReview(files);
-      const aiReviewWithId: AiResponseWithId[] = await persistReview(
+      const aiReviewWithId: AiResponseWithId[] = await storeReview(
         aiReview,
+        MODEL,
         commitId,
       );
       if (
@@ -72,14 +73,7 @@ export async function handleLabeled(
         });
       }
     } catch (error) {
-      if (error instanceof RequestError) {
-        if (error.response) {
-          console.error(
-            `Error! Status: ${error.response.status}. Message: ${error.response.data}`,
-          );
-        }
-        console.error(error);
-      }
+      console.error(error);
     }
   } else {
     console.log(`Received label "${label}" isn't "Needs Review"`);

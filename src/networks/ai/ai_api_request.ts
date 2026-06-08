@@ -4,7 +4,6 @@ import { env } from "../../config/env.js";
 import {
   AiResponse,
   AiResponseSchema,
-  AiResponseWithId,
   FEEDBACK_TYPES,
   ReviewWithPrompt,
 } from "../../types/aiResponse.js";
@@ -19,7 +18,6 @@ import {
 } from "../ai/prompt.js";
 import { askOpenRouterWithValidation } from "../ai/retryWithValidation.js";
 import { validateFeedbackPoints } from "../../validation/validateFeedbackPoints.js";
-import { storeReview } from "../../db/storeReview.js";
 import { removeAdditionalLineNumbersAndSymbols } from "../../validation/removeAdditionalLineNumbersAndSymbols.js";
 
 const openRouter = new OpenRouter({
@@ -138,78 +136,75 @@ export async function runAiReview(
     files,
   });
 
-  const feedbackPromises = FEEDBACK_TYPES.flatMap((type) => {
-    //construct messages here to keep ai call flow simple
-    console.log("current type ", type);
-    const responsePromises = [];
+  const feedbackPromises: Record<string, Promise<ReviewWithPrompt>> = {};
+
+  for (const type of FEEDBACK_TYPES) {
     const topics = getTopics(type);
 
-    for (const topic of topics) {
-      console.log("current topic", topic);
+    const topicPromises = topics.map((topic) => {
       const messages: Message[] = buildMessages(code, type, topic);
       const requestParams = {
         ...defaultChatParameters,
         ...(getRequestParams(type) ?? {}),
       };
-      console.log("======= req params ========\n", requestParams);
-      responsePromises.push(
-        askOpenRouterWithValidation(messages, requestParams).then((review) => ({
-          review,
-          prompt:
-            FEEDBACK_TYPE_PROMPTS[type.toLowerCase()] + ` Topic is: ` + topic,
-        })),
-      );
-    }
-    return responsePromises;
-  });
 
-  const results = await Promise.allSettled(feedbackPromises);
+      return askOpenRouterWithValidation(messages, requestParams).then(
+        (review) =>
+          review.feedback_points.map((point) => ({
+            ...point,
+            topic,
+          })),
+      );
+    });
+    feedbackPromises[type] = Promise.all(topicPromises).then((allPoints) => ({
+      feedback_type: type as ReviewWithPrompt["feedback_type"],
+      feedback_points: allPoints.flat(),
+      prompt: FEEDBACK_TYPE_PROMPTS[type.toLowerCase()],
+    }));
+  }
+
+  const results = await Promise.allSettled(Object.values(feedbackPromises));
 
   let combinedReview: ReviewWithPrompt[] = [];
+  const failures = results.filter((r) => r.status === "rejected");
+  const successes = results.filter((r) => r.status === "fulfilled");
 
-  results.forEach((result) => {
-    if (result.status === "fulfilled") {
-      combinedReview.push(result.value);
-    }
-  });
+  if (successes.length === 0) {
+    console.warn("All feedback requests failed");
+    throw failures[0].reason;
+  }
+
+  if (failures.length > 0) {
+    console.warn(
+      `${failures.length} requests failed, continuing with ${successes.length} results`,
+    );
+    failures.forEach((f, i) => console.error(`Failure ${i + 1}:`, f.reason));
+  }
+
+  successes.forEach((result) => combinedReview.push(result.value));
+
+  console.log("====== Combined review ========");
   console.log(JSON.stringify(combinedReview, null, 4));
   const SEVERITY_THRESHOLD = 2;
   combinedReview.forEach((review) => {
-    if (review.review.feedback_type != "comments quality") {
-      review.review.feedback_points = review.review.feedback_points.filter(
+    if (review.feedback_type != "comments quality") {
+      review.feedback_points = review.feedback_points.filter(
         (point) => point.severity > SEVERITY_THRESHOLD,
       );
     }
   });
 
-  if (
-    combinedReview.some(
-      (response) => response.review.feedback_points.length > 0,
-    )
-  ) {
+  if (combinedReview.some((response) => response.feedback_points.length > 0)) {
     combinedReview = combinedReview.map((reviewWithPrompt) => ({
-      review:
-        reviewWithPrompt.review.feedback_points.length > 0
-          ? removeAdditionalLineNumbersAndSymbols(reviewWithPrompt.review)
-          : reviewWithPrompt.review,
-      prompt: reviewWithPrompt.prompt,
+      ...reviewWithPrompt,
+      feedback_points:
+        reviewWithPrompt.feedback_points.length > 0
+          ? removeAdditionalLineNumbersAndSymbols(reviewWithPrompt)
+          : reviewWithPrompt.feedback_points,
     }));
   }
 
   const validatedReview = validateFeedbackPoints(combinedReview, files);
 
   return validatedReview;
-}
-
-export async function persistReview(
-  review: ReviewWithPrompt[],
-  sha: string,
-): Promise<AiResponseWithId[]> {
-  let reviewWithIds: AiResponseWithId[] = []; // Initialize it here to avoid unassigned variable error
-  if (review.some((response) => response.review.feedback_points.length > 0)) {
-    reviewWithIds = await storeReview(review, MODEL, sha);
-  } else {
-  }
-
-  return reviewWithIds;
 }

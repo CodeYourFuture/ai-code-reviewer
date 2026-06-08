@@ -8,5 +8,11 @@ import data from "../src/utils/sampleOutput/output2.json" with { type: "json" };
 import { formAiOutputDataObject } from "./storeAiReviewData.js";
 
 const files: PRFile[] = data as PRFile[];
-const review = await runAiReview(files);
-formAiOutputDataObject(defaultChatParameters, MODEL, review);
+try {
+  const review = await runAiReview(files);
+  console.log("======= review ========\n", review);
+  formAiOutputDataObject(defaultChatParameters, MODEL, review);
+} catch (err) {
+  console.log("problems with test review");
+  console.error(err);
+}

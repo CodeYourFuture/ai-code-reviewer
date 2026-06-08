@@ -65,12 +65,11 @@ export const storeReview = async (
     const prompt_id = await getOrCreatePromptId(feedback.prompt);
     const updatedPoints = [];
 
-    for (const point of feedback.review.feedback_points) {
+    for (const point of feedback.feedback_points) {
       const feedbackPointData: FeedbackPointData = {
-        feedback_type: feedback.review.feedback_type,
+        feedback_type: feedback.feedback_type,
         file_name: point.file_name,
-        //TODO: save several topic if they are present, not only one
-        review_topic: point.topics[0],
+        review_topic: point.topic,
         point: point.point,
         // since ai can sometimes return array of numbers, despite of instructions, take only the first line number
         line_number: point.line_numbers[0],
@@ -89,7 +88,7 @@ export const storeReview = async (
     }
 
     feedbackWithId.push({
-      feedback_type: feedback.review.feedback_type,
+      feedback_type: feedback.feedback_type,
       feedback_points: updatedPoints,
     });
   }

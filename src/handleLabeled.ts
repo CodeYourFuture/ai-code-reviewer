@@ -7,8 +7,10 @@ import { postInlineComments } from "./networks/githubApi/postInlineComment.js";
 import { postPRComment } from "./networks/githubApi/postPrComment.js";
 import { AiResponseWithId, ReviewWithPrompt } from "./types/aiResponse.js";
 import { storeReview } from "./db/storeReview.js";
+import { haveCommentedAlready } from "./networks/githubApi/haveCommentedAlready.js";
 
-const messageForNewPRs = "Thanks for opening a new PR! AI started to review it";
+const messageForNewPRs =
+  "Thanks for opening a new PR! AI started to review it. Please notice that AI will review this PR only once";
 const messageWhenNoFeedback =
   "Your code is ready to be reviewed by a volunteer";
 
@@ -17,10 +19,14 @@ export async function handleLabeled(
 ) {
   const { payload, octokit } = event;
   if (!payload.pull_request) return;
+
+  const owner = payload.repository.owner.login;
+  const repo = payload.repository.name;
+  const pullNumber = payload.pull_request.number;
+  const commitId = payload.pull_request.head.sha;
   const label = payload.label?.name;
-  console.log(
-    `Received a "labeled" event for PR #${payload.pull_request.number}`,
-  );
+
+  console.log(`Received a "labeled" event for PR #${pullNumber}`);
 
   if (
     process.env.NODE_ENV === "production" &&
@@ -30,13 +36,16 @@ export async function handleLabeled(
     return;
   }
 
+  if (
+    process.env.NODE_ENV === "production" &&
+    (await haveCommentedAlready(owner, repo, pullNumber, octokit))
+  ) {
+    console.log("This reviewer only review prs once");
+    return;
+  }
+
   if (label?.toLocaleLowerCase() === "needs review") {
     try {
-      const owner = payload.repository.owner.login;
-      const repo = payload.repository.name;
-      const pullNumber = payload.pull_request.number;
-      const commitId = payload.pull_request.head.sha;
-
       await postPRComment({
         owner,
         repo,

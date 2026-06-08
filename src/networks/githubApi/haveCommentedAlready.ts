@@ -6,7 +6,7 @@ export async function haveCommentedAlready(
   repo: string,
   pullNumber: number,
   octokit: Octokit,
-) {
+): Promise<boolean> {
   try {
     const events: TimelineEvents =
       await octokit.rest.issues.listEventsForTimeline({
@@ -15,15 +15,13 @@ export async function haveCommentedAlready(
         issue_number: pullNumber,
       });
     if (events.data) {
-      const commentFromBot = events.data.find(
-        (event) => event.user?.login === "cyf-ai-code-reviewer[bot]",
+      const commentFromBotExist = events.data.some(
+        (event) =>
+          "user" in event && event.user?.login === "cyf-ai-code-reviewer[bot]",
       );
-      if (commentFromBot) {
-        return true;
-      } else {
-        return false;
-      }
+      return commentFromBotExist;
     }
+    throw new Error("Error checking if bot has left a comment already");
   } catch (err) {
     throw err;
   }

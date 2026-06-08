@@ -69,7 +69,6 @@ export const storeReview = async (
       const feedbackPointData: FeedbackPointData = {
         feedback_type: feedback.feedback_type,
         file_name: point.file_name,
-        //TODO: save several topic if they are present, not only one
         review_topic: point.topic,
         point: point.point,
         // since ai can sometimes return array of numbers, despite of instructions, take only the first line number

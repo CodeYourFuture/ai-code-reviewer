@@ -11,6 +11,7 @@ const files: PRFile[] = data as PRFile[];
 try {
   const review = await runAiReview(files);
   console.log("======= review ========\n", review);
+  formAiOutputDataObject(defaultChatParameters, MODEL, review);
 } catch (err) {
   console.log("problems with test review");
   console.error(err);

@@ -1,4 +1,3 @@
-import { RequestError } from "@octokit/request-error";
 import type { EmitterWebhookEvent } from "@octokit/webhooks";
 import { Octokit } from "octokit";
 import { checkMembershipForUser } from "./networks/githubApi/checkMembershipForUser.js";

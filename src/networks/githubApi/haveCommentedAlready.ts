@@ -14,15 +14,14 @@ export async function haveCommentedAlready(
         repo,
         issue_number: pullNumber,
       });
-
     if (events.data) {
-      const commentFromBot = events.data.find((event) => {
-        event.actor?.login === "cyf-ai-code-reviewer[bot]";
-      });
+      const commentFromBot = events.data.find(
+        (event) => event.user?.login === "cyf-ai-code-reviewer[bot]",
+      );
       if (commentFromBot) {
         return true;
       } else {
-        false;
+        return false;
       }
     }
   } catch (err) {

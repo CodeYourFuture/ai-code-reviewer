@@ -12,16 +12,16 @@ Do not reframe suggestions as advice (e.g., "it's good to be aware..."). If it i
 Encourage the author to think about improvements rather than prescribing exact solutions.
 You should reply with a JSON object containing feedback on the code only on the topics that you have been assigned to below.
 One file can have multiple feedback points.
-Prefer simple, direct code when it is already readable.
+Do not write code in the feedback text.
 Never leave line_numbers empty unless the issue is conceptual and applies to the entire file.
 You MUST evaluate the code against EVERY topic listed`;
 
-export const topics: string[] = [
+export const codeQualityTopics: string[] = [
   "Duplicated code which can be moved into functions so they can be referenced from multiple places",
   "More than 6 levels of Deep Nesting",
   "Returning true or false from a condition, e.g `if (someExpression) { return true; } else { return false; }`",
   "Variables that are incorrectly scoped causing bugs",
-  "Making temporary variables which could be directly returned without improved clarity",
+  "Making temporary variables used only once before their immediate use or which could be directly returned without improved clarity. This topic is quite important",
   "Bad naming that deceives the reader about what variable stores or function logic ",
 ];
 
@@ -41,7 +41,11 @@ You should reply with a JSON object containing feedback on the code comments.
 One file can have multiple feedback points.
 If the code is correct, do not comment.
 Never leave line_numbers empty. 
+If you find yourself making more than four comments, stop and return just four comments
 Evaluate the code against this topics: 
-- Code is already simple and obvious and no need to add a comment.
-- Code can be rewritten so it doesn't need a comment anymore.
 `;
+//ai gives nice comments regarding the comments already, so there is no need to create more topics and spend more tokens reviewing each
+export const commentsQualityTopics: string[] = [
+  `- Code is already simple and obvious and no need to add a comment.
+- Code can be rewritten so it doesn't need a comment anymore.`,
+];

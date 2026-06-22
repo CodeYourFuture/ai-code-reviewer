@@ -77,6 +77,16 @@ This app uses Auth0 for authentication with GitHub as the login provider. The fr
       6. In the workflow, add new custom action between `Start` and `Complete` steps
       7. Apply
 
+### Get AI API key
+
+For access to LLMs I used [Open Router](https://openrouter.ai/).
+To get started:
+
+- Create an Open Router account.
+- Buy credits (minimum payment is 5$)
+- Get your API key
+- Add your key to the `OPENROUTER_API_KEY` env var
+
 ### Environment Setup
 
 Create a `.env` file in the project root with these values:

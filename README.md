@@ -100,7 +100,9 @@ OPENROUTER_API_KEY="YOUR_KEY"
 DATABASE_USER=
 DATABASE_PASSWORD=
 DATABASE_NAME=
-DATABASE_URL="postgres://user:password@localhost:5432/your_db"
+DATABASE_URL="postgres://YourUser:YourPassword@localhost:5432/YourDatabaseName"
+
+
 AUTH0_DOMAIN="your-tenant-domain"
 AUTH0_AUDIENCE="your-audience"
 BASE_URL="http://localhost:5173"

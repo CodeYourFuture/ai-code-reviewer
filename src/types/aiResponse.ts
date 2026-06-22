@@ -4,9 +4,12 @@ import { z } from "zod";
 // To fix this, always pass the array directly into the z.enum() function, or use as const.
 // https://zod.dev/api?id=enums
 export const FEEDBACK_TYPES = ["code quality", "comments quality"] as const;
+export const feedbackTypesSchema = z.enum(FEEDBACK_TYPES);
+export type FeedbackTypes = z.infer<typeof feedbackTypesSchema>;
 
 export interface ReviewWithPrompt {
-  review: AiResponse;
+  feedback_type: FeedbackTypes;
+  feedback_points: FeedbackPointWithTopic[];
   prompt: string;
 }
 
@@ -15,11 +18,6 @@ export const FeedbackPointSchema = z
     file_name: z
       .string()
       .describe("The name of the file where the feedback applies."),
-    topics: z
-      .array(z.string())
-      .describe(
-        "The list of topics from the prompt used to evaluate the issue. If same issue falls under several topic, list them all",
-      ),
     point: z
       .string()
       .describe(
@@ -43,11 +41,13 @@ export const FeedbackPointSchema = z
   .describe(
     "A collection of feedback points. Each feedback_point must refer to exactly one issue.",
   );
-
-export const AiResponseSchema = z.object({
-  feedback_type: z.enum(FEEDBACK_TYPES),
-  feedback_points: z.array(FeedbackPointSchema),
+export const FeedbackPointWithTopicSchema = FeedbackPointSchema.extend({
+  topic: z.string(),
 });
+export const AiResponseSchema = z.object({
+  feedback_points: z.array(FeedbackPointWithTopicSchema),
+});
+
 // Always create a TypeScript type from the schema using z.infer.
 export type AiResponse = z.infer<typeof AiResponseSchema>;
 export type FeedbackPoint = z.infer<typeof FeedbackPointSchema>;
@@ -61,3 +61,6 @@ export const AiResponseSchemaWithId = z.object({
 });
 export type AiResponseWithId = z.infer<typeof AiResponseSchemaWithId>;
 export type FeedbackPointWithId = z.infer<typeof FeedbackPointSchemaWithId>;
+export type FeedbackPointWithTopic = z.infer<
+  typeof FeedbackPointWithTopicSchema
+>;

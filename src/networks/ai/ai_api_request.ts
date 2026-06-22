@@ -4,33 +4,45 @@ import { env } from "../../config/env.js";
 import {
   AiResponse,
   AiResponseSchema,
-  AiResponseWithId,
   FEEDBACK_TYPES,
   ReviewWithPrompt,
 } from "../../types/aiResponse.js";
 import { PRFile } from "../../types/githubTypes.js";
-import { buildPRReviewPrompt } from "../../utils/buildPRReviewPrompt.js";
+import { prepareCodeForReview } from "../../utils/prepareCodeForReview.js";
 import { getSchema } from "../../utils/responseSchemas/getSchema.js";
-import { badCommentsPrompt, basePrompt, topics } from "../ai/prompt.js";
+import {
+  badCommentsPrompt,
+  basePrompt,
+  codeQualityTopics,
+  commentsQualityTopics,
+} from "../ai/prompt.js";
 import { askOpenRouterWithValidation } from "../ai/retryWithValidation.js";
-import { validateFeedbackPoints } from "../../validateFeedbackPoints.js";
-import { storeReview } from "../../db/storeReview.js";
+import { validateFeedbackPoints } from "../../validation/validateFeedbackPoints.js";
+import { removeAdditionalLineNumbersAndSymbols } from "../../validation/removeAdditionalLineNumbersAndSymbols.js";
 
 const openRouter = new OpenRouter({
   apiKey: env.OPENROUTER_API_KEY,
 });
-// const FreeModel = "arcee-ai/trinity-large-preview:free";
+// export const MODEL = "nvidia/nemotron-3-ultra-550b-a55b:free";
 export const MODEL = "openai/gpt-5.1";
-export const codeQualityPrompt = `${basePrompt}
-        Topics are: \n- ${topics.join(`\n- `)}`;
+export const codeQualityPrompt = basePrompt;
 export const commentQualityPrompt = badCommentsPrompt;
 export const defaultChatParameters: Partial<ChatGenerationParams> = {
   temperature: 0,
   model: MODEL,
+  // commented out because free models can't understand these properties
   responseFormat: {
     type: "json_schema",
     jsonSchema: getSchema,
   },
+};
+export const codeQualityParametersAddons: Partial<ChatGenerationParams> = {
+  reasoning: {
+    effort: "low",
+  },
+};
+export const commentsQualityParametersAddons: Partial<ChatGenerationParams> = {
+  maxCompletionTokens: 2000, //I don't want to burn tokens to get lots of feedback about code comments if I will filter them out when there are more than 3 feedback points
 };
 
 const FEEDBACK_TYPE_PROMPTS: Record<string, string> = {
@@ -38,13 +50,18 @@ const FEEDBACK_TYPE_PROMPTS: Record<string, string> = {
   "comments quality": commentQualityPrompt,
 };
 
-function buildMessages(code: string, feedbackType: string): Message[] {
+function buildMessages(
+  code: string,
+  feedbackType: string,
+  topic: string,
+): Message[] {
   const userMessage: Message = {
     role: "user",
     content: code,
   };
 
-  const systemPrompt = getSystemPrompt(feedbackType);
+  const systemPrompt = `${getSystemPrompt(feedbackType)}
+  Topic is: ${topic}`;
   return systemPrompt
     ? [{ role: "system", content: systemPrompt }, userMessage]
     : [userMessage];
@@ -60,14 +77,36 @@ function getSystemPrompt(type: string): string | null {
       return null;
   }
 }
+function getTopics(feedbackType: string): string[] {
+  switch (feedbackType.toLowerCase()) {
+    case "code quality":
+      return codeQualityTopics;
+    case "comments quality":
+      return commentsQualityTopics;
+    default:
+      return ["no topics"];
+  }
+}
+
+function getRequestParams(
+  feedbackType: string,
+): Partial<ChatGenerationParams> | null {
+  switch (feedbackType.toLowerCase()) {
+    case "code quality":
+      return codeQualityParametersAddons;
+    case "comments quality":
+      return commentsQualityParametersAddons;
+    default:
+      return null;
+  }
+}
 
 export async function aiCall(
-  code: string,
-  feedbackType: string,
+  messages: Message[],
+  requestParams: Partial<ChatGenerationParams>,
 ): Promise<string> {
-  const messages: Message[] = buildMessages(code, feedbackType);
   const completion = await openRouter.chat.send({
-    ...defaultChatParameters,
+    ...requestParams,
     messages: messages,
     stream: false,
   });
@@ -78,96 +117,94 @@ export async function aiCall(
   if (typeof res !== "string") {
     throw new Error("Content returned from OpenRouter is not string");
   }
+  console.log("===== resposnse =====");
+  console.log(JSON.stringify(completion.choices[0]?.message, null, 2));
+  console.log("===== reasoning =====");
+  console.log(completion.choices[0]?.message?.reasoning);
   return res;
 }
 
 export function validateAiResponse(response: string): AiResponse {
-  console.log("validating response");
   const parsed = JSON.parse(response);
   return AiResponseSchema.parse(parsed);
 }
 
 export async function runAiReview(
   files: PRFile[],
-): Promise<AiResponseWithId[]> {
-  const code = buildPRReviewPrompt({
+): Promise<ReviewWithPrompt[]> {
+  const code = prepareCodeForReview({
     files,
   });
-  console.log("--------- CODE --------\n", code);
-  console.log("\n🤖 Sending PR diff to OpenRouter for review...\n");
 
-  const feedbackPromises = FEEDBACK_TYPES.map((type) =>
-    askOpenRouterWithValidation(code, type).then((review) => ({
-      review,
+  const feedbackPromises: Record<string, Promise<ReviewWithPrompt>> = {};
+
+  for (const type of FEEDBACK_TYPES) {
+    const topics = getTopics(type);
+
+    const topicPromises = topics.map((topic) => {
+      const messages: Message[] = buildMessages(code, type, topic);
+      const requestParams = {
+        ...defaultChatParameters,
+        ...(getRequestParams(type) ?? {}),
+      };
+
+      return askOpenRouterWithValidation(messages, requestParams).then(
+        (review) =>
+          review.feedback_points.map((point) => ({
+            ...point,
+            topic,
+          })),
+      );
+    });
+    feedbackPromises[type] = Promise.all(topicPromises).then((allPoints) => ({
+      feedback_type: type as ReviewWithPrompt["feedback_type"],
+      feedback_points: allPoints.flat(),
       prompt: FEEDBACK_TYPE_PROMPTS[type.toLowerCase()],
-    })),
-  );
+    }));
+  }
 
-  const results = await Promise.allSettled(feedbackPromises);
+  const results = await Promise.allSettled(Object.values(feedbackPromises));
 
   let combinedReview: ReviewWithPrompt[] = [];
+  const failures = results.filter((r) => r.status === "rejected");
+  const successes = results.filter((r) => r.status === "fulfilled");
 
-  results.forEach((result) => {
-    if (result.status === "fulfilled") {
-      combinedReview.push(result.value);
-    }
-  });
+  if (successes.length === 0) {
+    console.warn("All feedback requests failed");
+    throw failures[0].reason;
+  }
+
+  if (failures.length > 0) {
+    console.warn(
+      `${failures.length} requests failed, continuing with ${successes.length} results`,
+    );
+    failures.forEach((f, i) => console.error(`Failure ${i + 1}:`, f.reason));
+  }
+
+  successes.forEach((result) => combinedReview.push(result.value));
+
+  console.log("====== Combined review ========");
+  console.log(JSON.stringify(combinedReview, null, 4));
   const SEVERITY_THRESHOLD = 2;
   combinedReview.forEach((review) => {
-    if (review.review.feedback_type != "comments quality") {
-      review.review.feedback_points = review.review.feedback_points.filter(
+    if (review.feedback_type != "comments quality") {
+      review.feedback_points = review.feedback_points.filter(
         (point) => point.severity > SEVERITY_THRESHOLD,
       );
     }
   });
-  console.log("✅ Severity filtering completed");
-  if (
-    combinedReview.some(
-      (response) => response.review.feedback_points.length > 0,
-    )
-  ) {
+
+  if (combinedReview.some((response) => response.feedback_points.length > 0)) {
     combinedReview = combinedReview.map((reviewWithPrompt) => ({
-      review: removeAdditionalLineNumbersAndSymbols(reviewWithPrompt.review),
-      prompt: reviewWithPrompt.prompt,
+      ...reviewWithPrompt,
+      feedback_points:
+        reviewWithPrompt.feedback_points.length > 0
+          ? removeAdditionalLineNumbersAndSymbols(reviewWithPrompt)
+          : reviewWithPrompt.feedback_points,
     }));
   }
-  console.log("✅ Line number removal completed");
-  console.log("\n================ PR REVIEW ================\n");
-  console.log(JSON.stringify(combinedReview, null, 2));
-  console.log("\n==========================================\n");
+
   const validatedReview = validateFeedbackPoints(combinedReview, files);
-  console.log("✅ Validation completed");
-  let reviewWithIds: AiResponseWithId[] = []; // Initialize it here to avoid unassigned variable error
-  //I put this condition here because sha can be string | null
-  if (
-    files[0].sha &&
-    validatedReview.some(
-      (response) => response.review.feedback_points.length > 0,
-    )
-  ) {
-    console.log("📝 Storing review to database...");
-    // files[0].sha contains the sha of the commit which ai reviewed
-    reviewWithIds = await storeReview(validatedReview, MODEL, files[0].sha);
-  } else {
-    console.log("No review to store");
-  }
-  console.log("🏁 runAiReview completed");
-  return reviewWithIds;
-}
 
-export function removeAdditionalLineNumbersAndSymbols(
-  review: AiResponse,
-): AiResponse {
-  const sanitisedLineNumbers = review.feedback_points.flatMap((point) => {
-    const match = point.line_numbers[0].match(/\d+(?:-\d+)?/);
-    if (!match) return [];
-    return [
-      {
-        ...point,
-        line_numbers: [match[0], ...point.line_numbers.slice(1)],
-      },
-    ];
-  });
-
-  return { ...review, feedback_points: sanitisedLineNumbers };
+  return validatedReview;
 }

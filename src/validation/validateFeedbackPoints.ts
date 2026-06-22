@@ -1,6 +1,6 @@
-import { ReviewWithPrompt } from "./types/aiResponse.js";
-import type { PRFile } from "./types/githubTypes.js";
-import { getLineNumbers } from "./utils/extractReviewParams.js";
+import { ReviewWithPrompt } from "../types/aiResponse.js";
+import type { PRFile } from "../types/githubTypes.js";
+import { getLineNumbers } from "../utils/extractReviewParams.js";
 
 /**
  * Extract the maximum line number from a patch by parsing the '@@' hunk headers.
@@ -56,30 +56,27 @@ export function validateFeedbackPoints(
 
   return responses.map((response) => ({
     ...response,
-    review: {
-      ...response.review,
-      feedback_points: response.review.feedback_points.filter((point) => {
-        if (!fileLineMap.has(point.file_name)) {
+    feedback_points: response.feedback_points.filter((point) => {
+      if (!fileLineMap.has(point.file_name)) {
+        console.log(
+          `Filtering out feedback point: file "${point.file_name}" not in PR`,
+        );
+        return false;
+      }
+
+      const maxLine = fileLineMap.get(point.file_name)!;
+      const lines = getLineNumbers(point.line_numbers);
+
+      for (const lineNum of lines[0]) {
+        if (lineNum > maxLine || lineNum < 1) {
           console.log(
-            `Filtering out feedback point: file "${point.file_name}" not in PR`,
+            `Filtering out feedback point: line ${lineNum} out of range [1-${maxLine}] for file "${point.file_name}"`,
           );
           return false;
         }
+      }
 
-        const maxLine = fileLineMap.get(point.file_name)!;
-        const lines = getLineNumbers(point.line_numbers);
-
-        for (const lineNum of lines[0]) {
-          if (lineNum > maxLine || lineNum < 1) {
-            console.log(
-              `Filtering out feedback point: line ${lineNum} out of range [1-${maxLine}] for file "${point.file_name}"`,
-            );
-            return false;
-          }
-        }
-
-        return true;
-      }),
-    },
+      return true;
+    }),
   }));
 }

@@ -11,7 +11,6 @@ const loginBtn = document.getElementById("login-btn");
 const logoutBtn = document.getElementById("logout-btn");
 const likeBtn = document.getElementById("like-btn");
 const dislikeBtn = document.getElementById("dislike-btn");
-const profileContainer = document.getElementById("profile");
 const closeBtn = document.getElementById("close-btn");
 const submissionMsg = document.querySelector(".logged-in-message");
 let auth0Client;
@@ -46,16 +45,8 @@ async function initAuth0() {
 
 async function getAccessToken() {
   const isAuthenticated = await auth0Client.isAuthenticated();
-
-  if (isAuthenticated) {
-    try {
-      const token = await auth0Client.getTokenSilently();
-      return token;
-    } catch (error) {
-      console.error("Error getting token:", error);
-      showError(error.message);
-    }
-  }
+  if (!isAuthenticated) throw new Error("User is not authenticated");
+  return await auth0Client.getTokenSilently();
 }
 
 function identifyFeedbackCommentId() {
@@ -77,32 +68,28 @@ async function handleRedirectCallback() {
 
 // Update UI based on authentication state
 async function updateUI() {
+  if (!commentId) {
+    showError("No comment ID found in URL");
+    hideLoading();
+    return;
+  }
   try {
     const isAuthenticated = await auth0Client.isAuthenticated();
 
     if (isAuthenticated) {
-      showLoggedIn();
-      const user = await getUserData();
-      const res = await hasUserRatedComment(user.sub.split("|")[1]);
+      const res = await hasUserRatedComment();
       if (res === true) {
-        showMessage("you already submitted feedback for that comment");
+        throw new Error("User has already submitted feedback for that comment");
       }
+      showLoggedIn();
     } else {
       showLoggedOut();
     }
 
     hideLoading();
   } catch (err) {
-    showError(err.message);
-  }
-}
-
-async function getUserData() {
-  try {
-    const user = await auth0Client.getUser();
-    return user;
-  } catch (err) {
-    console.error("Error getting profile:", err);
+    hideLoading();
+    showMessage(err.message);
   }
 }
 // Event handlers
@@ -135,7 +122,6 @@ async function sendReaction(reaction) {
     const token = await getAccessToken();
     if (token) {
       if (reaction === "like" || reaction === "dislike") {
-        const user = await getUserData();
         const response = await fetch(`${API_BASE}/reaction/${commentId}`, {
           method: "POST",
           headers: {
@@ -144,8 +130,6 @@ async function sendReaction(reaction) {
           },
           body: JSON.stringify({
             reaction,
-            userId: user.sub.split("|")[1],
-            nickname: user.nickname,
           }),
         });
         if (!response.ok) {
@@ -162,35 +146,30 @@ async function sendReaction(reaction) {
     showError(err.message);
   }
 }
-async function hasUserRatedComment(userId) {
-  try {
-    const token = await getAccessToken();
-    if (token) {
-      const response = await fetch(
-        `${API_BASE}/hasUserRatedComment/${commentId}`,
-        {
-          method: "GET",
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-        },
-      );
-      const data = await response.json();
+async function hasUserRatedComment() {
+  const token = await getAccessToken();
 
-      if (!response.ok) {
-        showError(data.message);
-        return;
-      } else {
-        if (data.message === true || data.message === false)
-          return data.message;
-      }
-    } else {
-      throw new Error("no token");
-    }
-  } catch (err) {
-    showError(err.message);
+  if (!token) throw new Error("No token available");
+
+  const response = await fetch(`${API_BASE}/hasUserRatedComment/${commentId}`, {
+    method: "GET",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.message || `Request failed: ${response.status}`);
   }
+
+  if (typeof data.message !== "boolean") {
+    throw new Error(`Unexpected response format: ${JSON.stringify(data)}`);
+  }
+
+  return data.message;
 }
 
 // UI state management

@@ -1,14 +1,16 @@
-import { RequestError } from "@octokit/request-error";
 import type { EmitterWebhookEvent } from "@octokit/webhooks";
 import { Octokit } from "octokit";
-import { checkMembershipForUser } from "./checkMembershipForUser.js";
-import { runAiReview } from "./networks/ai/ai_api_request.js";
-import { getPRFiles, logPRFiles } from "./networks/github.js";
-import { postInlineComments } from "./networks/postInlineComment.js";
-import { postPRComment } from "./networks/postPrComment.js";
-import { AiResponseWithId } from "./types/aiResponse.js";
+import { checkMembershipForUser } from "./networks/githubApi/checkMembershipForUser.js";
+import { MODEL, runAiReview } from "./networks/ai/ai_api_request.js";
+import { getPRFiles, logPRFiles } from "./networks/githubApi/github.js";
+import { postInlineComments } from "./networks/githubApi/postInlineComment.js";
+import { postPRComment } from "./networks/githubApi/postPrComment.js";
+import { AiResponseWithId, ReviewWithPrompt } from "./types/aiResponse.js";
+import { storeReview } from "./db/storeReview.js";
+import { haveCommentedAlready } from "./networks/githubApi/haveCommentedAlready.js";
 
-const messageForNewPRs = "Thanks for opening a new PR! AI started to review it";
+const messageForNewPRs =
+  "Thanks for opening a new PR! AI started to review it. Please notice that AI will review this PR only once";
 const messageWhenNoFeedback =
   "Your code is ready to be reviewed by a volunteer";
 
@@ -17,10 +19,14 @@ export async function handleLabeled(
 ) {
   const { payload, octokit } = event;
   if (!payload.pull_request) return;
+
+  const owner = payload.repository.owner.login;
+  const repo = payload.repository.name;
+  const pullNumber = payload.pull_request.number;
+  const commitId = payload.pull_request.head.sha;
   const label = payload.label?.name;
-  console.log(
-    `Received a "labeled" event for PR #${payload.pull_request.number}`,
-  );
+
+  console.log(`Received a "labeled" event for PR #${pullNumber}`);
 
   if (
     process.env.NODE_ENV === "production" &&
@@ -30,13 +36,16 @@ export async function handleLabeled(
     return;
   }
 
+  if (
+    process.env.NODE_ENV === "production" &&
+    (await haveCommentedAlready(owner, repo, pullNumber, octokit))
+  ) {
+    console.log("This reviewer only review prs once");
+    return;
+  }
+
   if (label?.toLocaleLowerCase() === "needs review") {
     try {
-      const owner = payload.repository.owner.login;
-      const repo = payload.repository.name;
-      const pullNumber = payload.pull_request.number;
-      const commitId = payload.pull_request.head.sha;
-
       await postPRComment({
         owner,
         repo,
@@ -46,14 +55,21 @@ export async function handleLabeled(
       });
       const files = await getPRFiles(owner, repo, pullNumber, octokit);
       await logPRFiles(owner, repo, pullNumber, files);
-      const aiReview: AiResponseWithId[] = await runAiReview(files);
-      if (aiReview.some((response) => response.feedback_points.length > 0)) {
+      const aiReview: ReviewWithPrompt[] = await runAiReview(files);
+      const aiReviewWithId: AiResponseWithId[] = await storeReview(
+        aiReview,
+        MODEL,
+        commitId,
+      );
+      if (
+        aiReviewWithId.some((response) => response.feedback_points.length > 0)
+      ) {
         await postInlineComments(
           owner,
           repo,
           pullNumber,
           octokit,
-          aiReview,
+          aiReviewWithId,
           commitId,
         );
       } else {
@@ -66,14 +82,7 @@ export async function handleLabeled(
         });
       }
     } catch (error) {
-      if (error instanceof RequestError) {
-        if (error.response) {
-          console.error(
-            `Error! Status: ${error.response.status}. Message: ${error.response.data}`,
-          );
-        }
-        console.error(error);
-      }
+      console.error(error);
     }
   } else {
     console.log(`Received label "${label}" isn't "Needs Review"`);

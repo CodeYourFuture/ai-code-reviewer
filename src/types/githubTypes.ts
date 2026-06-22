@@ -1,4 +1,6 @@
 import type { RestEndpointMethodTypes } from "@octokit/plugin-rest-endpoint-methods";
+export type TimelineEvents =
+  RestEndpointMethodTypes["issues"]["listEventsForTimeline"]["response"];
 
 export type PullRequestFilesResponse =
   RestEndpointMethodTypes["pulls"]["listFiles"]["response"];

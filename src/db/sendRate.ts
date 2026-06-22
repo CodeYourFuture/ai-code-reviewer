@@ -1,5 +1,5 @@
-import pool from "./db/db.js";
-import { actionTypes } from "./types/dbTypes.js";
+import pool from "./db.js";
+import { actionTypes } from "../types/dbTypes.js";
 
 export async function rateFeedback(
   id: number,

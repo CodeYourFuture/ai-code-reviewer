@@ -1,6 +1,6 @@
 import { AiResponse } from "../types/aiResponse.js";
 import { describe, expect, it } from "vitest";
-import { removeAdditionalLineNumbers } from "./ai/ai_api_request.js";
+import { removeAdditionalLineNumbersAndSymbols } from "../validation/removeAdditionalLineNumbersAndSymbols.js";
 
 const review: AiResponse = {
   feedback_type: "code quality",
@@ -24,7 +24,7 @@ const review: AiResponse = {
 
 describe("removeAdditionalLineNumbers", () => {
   it("it removes additional lines", () => {
-    const removed = removeAdditionalLineNumbers(review);
+    const removed = removeAdditionalLineNumbersAndSymbols(review);
     expect(removed.feedback_points[0].line_numbers).toEqual(["3-9"]);
   });
 });

@@ -1,4 +1,4 @@
-import pool from "./db/db.js";
+import pool from "./db.js";
 interface row {
   ai_review_id: number;
   user_github_id: number;

@@ -1,50 +1,188 @@
 # How to Run
 
-## Dev and testing
+## Local development and testing
 
 ### Installation
+
 Install dependencies:
+
 ```bash
 npm install
+cd client
+npm install
+cd ..
 ```
 
-### Create GitHub app
-https://docs.github.com/en/apps/creating-github-apps/writing-code-for-a-github-app/building-a-github-app-that-responds-to-webhook-events#register-a-github-app
-
 ### Get a webhook proxy URL
+
 In order to develop your app locally, you can use a webhook proxy URL to forward webhooks from GitHub to your computer or codespace. This app uses Smee.io to provide a webhook proxy URL and forward webhooks.
+
 1. In your browser, navigate to https://smee.io/.
 2. Click Start a new channel.
 3. Copy the full URL under "Webhook Proxy URL". You will put it in .env in a later step.
 
+### Create a GitHub App
+
+Follow GitHub documentation for creating a GitHub App that responds to webhook events:
+
+https://docs.github.com/en/apps/creating-github-apps/writing-code-for-a-github-app/building-a-github-app-that-responds-to-webhook-events#register-a-github-app
+
+### Create Auth0
+
+This app uses Auth0 for authentication with GitHub as the login provider. The frontend uses the Auth0 SPA SDK, and the backend validates JWTs using express-oauth2-jwt-bearer.
+
+1. Create an Auth0 Account & Tenant
+   1. Go to auth0.com and sign up
+   2. Create a new tenant (e.g., my-app.us.auth0.com) — this becomes your `AUTH0_DOMAIN`
+
+2. Create a Single Page Application (Frontend)
+   1. In the Auth0 dashboard, go to Applications → Applications → Create Application
+   2. Choose Single Page Application
+
+   3. Configure the SPA settings:
+      Navigate to the Settings tab and fill in:
+   - Allowed Callback URLs: http://localhost:5173
+   - Logout URLs: http://localhost:5173
+   - Web Origins:http://localhost:5173
+   4. Save changes. Note the Client ID — this is your `VITE_AUTH0_CLIENT_ID`.
+   5. Set Up GitHub Social Connection
+      1. Go to Authentication → Social → Create Connection
+      2. Select GitHub and deselect everything else
+      3. You'll need a GitHub OAuth App:
+         1. Go to GitHub → Settings → Developer Settings → OAuth Apps → New OAuth App
+         2. Set Homepage URL
+         3. Set Authorization callback URL: https://<your-tenant>.auth0.com/login/callback
+         4. Copy the `Client ID` and `Client Secret` into Auth0's GitHub connection settings
+      4. Make sure GitHub connection is enabled for your SPA
+
+3. Create an API (Backend)
+   1. Go to Applications → APIs → Create API
+   - You can use any URL as an identifier, it doesn't matter. It will be your `AUTH0_AUDIENCE` in the backend and `VITE_AUTH0_AUDIENCE` in the frontend
+   2. Add Action that will add `nickname` claim to the token payload
+      1. Go to Dashboard - Actions - Library
+      2. Click `Create Action` - `Create Custom Action`
+      3. Add following script and deploy:
+
+         ```bash
+         exports.onExecutePostLogin = async (event, api) => {
+               api.accessToken.setCustomClaim(
+               "https://yourapp.com/nickname",
+               event.user.nickname
+            );
+         };
+         ```
+
+      4. Than go to Actions - Triggers
+      5. Select `post-login` trigger
+      6. In the workflow, add new custom action between `Start` and `Complete` steps
+      7. Apply
+
+### Get AI API key
+
+For access to LLMs I used [Open Router](https://openrouter.ai/).
+To get started:
+
+- Create an Open Router account.
+- Buy credits (minimum payment is 5$)
+- Get your API key
+- Add your key to the `OPENROUTER_API_KEY` env var
+
 ### Environment Setup
-Create a `.env` file in the project root with the following variables:
-```
+
+Create a `.env` file in the project root with these values:
+
+```env
 APP_ID=<your-github-app-id>
 WEBHOOK_SECRET=<your-webhook-secret>
 GITHUB_PRIVATE_KEY_PATH=<path-to-your-private-key-file>
-WEBHOOK_PROXY_URL="YOUR_WEBHOOK_PROXY_URL"
+WEBHOOK_PROXY_URL="https://smee.io/<your-channel>"
 OPENROUTER_API_KEY="YOUR_KEY"
+DATABASE_USER=
+DATABASE_PASSWORD=
+DATABASE_NAME=
+DATABASE_URL="postgres://YourUser:YourPassword@localhost:5432/YourDatabaseName"
+
+
+AUTH0_DOMAIN="your-tenant-domain"
+AUTH0_AUDIENCE="your-audience"
+BASE_URL="http://localhost:5173"
 ```
+
+For the frontend, copy the example environment file in the `client` folder and add all credentials
 
 ### Running the Application
-Start the server with:
+
+**Start the db:**
+
 ```bash
-npm run server
+docker compose up -d
 ```
-- The server will start on `http://localhost:3000` (or your configured PORT).\
-- Server is listening for events at: `http://localhost:3000/api/webhook` (or your configured webhook url)
 
-### Running the Webhook delivery
-1. Open second terminal window
-2. To receive forwarded webhooks from Smee.io, run 
-```bash 
-npm run webhook 
-``` 
-That command assumes your webhook url is `http://localhost:3000/api/webhook`
+**Run migrations:**
 
-## Production
-In production you don't need `weebhook proxy` and instead of GITHUB_PRIVATE_KEY_PATH use GITHUB_PRIVATE_KEY with content of .pem file downloaded from github.  
-In production the start commands are  
-```npm run build```  
-```npm run start```
+```bash
+npm run migrate up
+```
+
+**Start the backend in watch mode:**
+
+```bash
+npm run dev
+```
+
+The backend should be available on `http://localhost:3000` by default.
+
+**To receive GitHub webhooks locally, in a second terminal, run:**
+
+```bash
+npm run webhook
+```
+
+This uses your `.env` values and forwards webhooks to `http://localhost:3000/api/webhook`.
+
+**To start the frontend application:**
+In another terminal run:
+
+```bash
+cd client
+npm run dev
+```
+
+The frontend is served by Vite at `http://localhost:5173` by default.
+
+### Other scripts
+
+Run unit tests with Vitest:
+
+```bash
+npm test
+```
+
+Run type checking:
+
+```bash
+npm run typeCheck
+```
+
+## Coolify Deployment Instructions
+
+In production, you do not need a webhook proxy.
+
+For production GitHub App setup, use `GITHUB_PRIVATE_KEY` with the raw `.pem` content instead of `GITHUB_PRIVATE_KEY_PATH`.
+
+1. Add New Resource, select Public Repository, and point to this GitHub repository. Add all variables from `.env.example.prod`
+   Use these commands to build and start the backend:
+
+```bash
+npm run build
+npm run migrate up && npm run start
+```
+
+2. To deploy the frontend
+   1. Create another recourse
+   2. Check both:
+   - `Is it a static site?`
+   - `Is it a SPA (Single Page Application)?`
+   3. set `Base directory` to `/client`
+   4. set `Publish Directory` to `/dist`
+   5. add env vars

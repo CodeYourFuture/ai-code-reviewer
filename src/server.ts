@@ -88,7 +88,7 @@ server.post("/reaction/:id", checkJwt, requireCyfMember, async (req, res) => {
   } catch (error) {
     console.error(error);
     if (error instanceof DatabaseError) {
-      if ((error.code = "23503")) {
+      if (error.code === "23503") {
         res.status(500).json({ message: "Requested resource doesn't exist" });
       }
     }

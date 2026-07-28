@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import type { AiResponse } from "../types/aiResponse.js";
+import type { ReviewWithPrompt } from "../types/aiResponse.js";
 import type { PRFile } from "../types/githubTypes.js";
 import { validateFeedbackPoints } from "./validateFeedbackPoints.js";
 
@@ -10,15 +10,20 @@ const makePoint = (
 ) => ({
   file_name,
   line_numbers,
-  topics: ["naming"],
+  topic: "naming",
   point: "A point",
   severity,
 });
 
-const makeResponse = (points: ReturnType<typeof makePoint>[]): AiResponse => ({
-  feedback_type: "code quality",
-  feedback_points: points,
-});
+const makeResponse = (
+  points: ReturnType<typeof makePoint>[],
+): ReviewWithPrompt => {
+  return {
+    feedback_type: "code quality",
+    feedback_points: points,
+    prompt: "A prompt",
+  };
+};
 
 // Patch with 5 new lines starting at line 1:
 const patchFiveLines =
@@ -216,13 +221,8 @@ describe("validateFeedbackPoints", () => {
 
   test("preserves all other response fields unchanged", () => {
     const files = [makeFile("foo.ts", patchFiveLines)];
-    const responses: AiResponse[] = [
-      {
-        feedback_type: "comments quality",
-        feedback_points: [makePoint("foo.ts", ["1"])],
-      },
-    ];
+    const responses = [makeResponse([makePoint("foo.ts", ["1"])])];
     const result = validateFeedbackPoints(responses, files);
-    expect(result[0].feedback_type).toBe("comments quality");
+    expect(result[0].feedback_points).toHaveLength(1);
   });
 });

@@ -8,6 +8,10 @@ import { AiResponseWithId, ReviewWithPrompt } from "./types/aiResponse.js";
 import { storeReview } from "./db/storeReview.js";
 import { haveCommentedAlready } from "./networks/githubApi/haveCommentedAlready.js";
 import { sendOutComments } from "./utils/sendOutComments.js";
+import {
+  addLabelToPR,
+  removeLabelFromPR,
+} from "./networks/githubApi/handleLabels.js";
 
 const messageForNewPRs =
   "Thanks for opening a new PR! AI started to review it. Please notice that AI will review this PR only once";
@@ -67,6 +71,8 @@ export async function handleLabeled(
         octokit,
         commitId,
       );
+      await removeLabelFromPR(octokit, owner, repo, pullNumber, "Needs Review");
+      await addLabelToPR(octokit, owner, repo, pullNumber, "Reviewed");
     } catch (error) {
       console.error(error);
     }

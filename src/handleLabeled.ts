@@ -3,7 +3,6 @@ import { Octokit } from "octokit";
 import { checkMembershipForUser } from "./networks/githubApi/checkMembershipForUser.js";
 import { MODEL, runAiReview } from "./networks/ai/ai_api_request.js";
 import { getPRFiles, logPRFiles } from "./networks/githubApi/github.js";
-import { postPRComment } from "./networks/githubApi/postPrComment.js";
 import { AiResponseWithId, ReviewWithPrompt } from "./types/aiResponse.js";
 import { storeReview } from "./db/storeReview.js";
 import { haveCommentedAlready } from "./networks/githubApi/haveCommentedAlready.js";

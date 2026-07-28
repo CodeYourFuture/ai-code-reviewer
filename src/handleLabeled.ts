@@ -3,14 +3,10 @@ import { Octokit } from "octokit";
 import { checkMembershipForUser } from "./networks/githubApi/checkMembershipForUser.js";
 import { MODEL, runAiReview } from "./networks/ai/ai_api_request.js";
 import { getPRFiles, logPRFiles } from "./networks/githubApi/github.js";
-import { postPRComment } from "./networks/githubApi/postPrComment.js";
 import { AiResponseWithId, ReviewWithPrompt } from "./types/aiResponse.js";
 import { storeReview } from "./db/storeReview.js";
 import { haveCommentedAlready } from "./networks/githubApi/haveCommentedAlready.js";
 import { sendOutComments } from "./utils/sendOutComments.js";
-
-const messageForNewPRs =
-  "Thanks for opening a new PR! AI started to review it. Please notice that AI will review this PR only once";
 
 export async function handleLabeled(
   event: EmitterWebhookEvent<"pull_request.labeled"> & { octokit: Octokit },
@@ -44,13 +40,6 @@ export async function handleLabeled(
 
   if (label?.toLocaleLowerCase() === "needs review") {
     try {
-      await postPRComment({
-        owner,
-        repo,
-        pullNumber,
-        body: messageForNewPRs,
-        octokit,
-      });
       const files = await getPRFiles(owner, repo, pullNumber, octokit);
       await logPRFiles(owner, repo, pullNumber, files);
       const aiReview: ReviewWithPrompt[] = await runAiReview(files);

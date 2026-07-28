@@ -13,6 +13,7 @@ import {
 import { Request, Response, NextFunction } from "express";
 import { checkMembershipForUser } from "./networks/githubApi/checkMembershipForUser.js";
 import { DatabaseError } from "pg";
+import { assertDbConnection } from "./db/db.js";
 
 const path = "/api/webhook";
 
@@ -147,6 +148,12 @@ server.use(
   },
 );
 
-server.listen(env.PORT, () => {
-  console.log(`Server running on port ${env.PORT}`);
-});
+try {
+  await assertDbConnection();
+  server.listen(env.PORT, () =>
+    console.log(`Server running on port ${env.PORT}`),
+  );
+} catch (err) {
+  console.error("Could not connect to PostgreSQL, aborting startup:", err);
+  process.exit(1);
+}

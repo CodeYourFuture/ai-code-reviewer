@@ -18,7 +18,7 @@ export function buildReviewCommentsArray(
 
       comments.push({
         body: `${feedbackParams.body}
-        \nTo "like" or "dislike" this comment, please follow [this link](${env.BASE_URL}/?id=${point.point_id})
+        \nTo "like" or "dislike" this comment, please follow [this link](${env.FRONTEND_BASE_URL}/?id=${point.point_id})
         `,
         path: feedbackParams.path,
         side: "RIGHT",

@@ -105,7 +105,7 @@ DATABASE_URL="postgres://YourUser:YourPassword@localhost:5432/YourDatabaseName"
 
 AUTH0_DOMAIN="your-tenant-domain"
 AUTH0_AUDIENCE="your-audience"
-BASE_URL="http://localhost:5173"
+FRONTEND_BASE_URL="http://localhost:5173"
 ```
 
 For the frontend, copy the example environment file in the `client` folder and add all credentials

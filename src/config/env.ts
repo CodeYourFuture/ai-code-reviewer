@@ -25,7 +25,7 @@ const envSchema = z.object({
   AUTH0_AUDIENCE: z.url(),
 
   //Frontend url to add to links in comments
-  BASE_URL: z.url(),
+  FRONTEND_BASE_URL: z.url(),
 });
 
 const parsed = envSchema.safeParse(process.env);

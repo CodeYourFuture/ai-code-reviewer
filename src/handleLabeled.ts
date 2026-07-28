@@ -7,6 +7,13 @@ import { AiResponseWithId, ReviewWithPrompt } from "./types/aiResponse.js";
 import { storeReview } from "./db/storeReview.js";
 import { haveCommentedAlready } from "./networks/githubApi/haveCommentedAlready.js";
 import { sendOutComments } from "./utils/sendOutComments.js";
+import {
+  addLabelToPR,
+  removeLabelFromPR,
+} from "./networks/githubApi/handleLabels.js";
+
+const messageForReviewedPrs =
+  "The CYF AI review has left comments. It will only review a PR one time. When you have addressed these comments, please request review again and a volunteer will take a look.";
 
 export async function handleLabeled(
   event: EmitterWebhookEvent<"pull_request.labeled"> & { octokit: Octokit },
@@ -56,6 +63,15 @@ export async function handleLabeled(
         octokit,
         commitId,
       );
+      await removeLabelFromPR(octokit, owner, repo, pullNumber, "Needs Review");
+      await addLabelToPR(octokit, owner, repo, pullNumber, "Reviewed");
+      await postPRComment({
+        owner,
+        repo,
+        pullNumber,
+        body: messageForReviewedPrs,
+        octokit,
+      });
     } catch (error) {
       console.error(error);
     }

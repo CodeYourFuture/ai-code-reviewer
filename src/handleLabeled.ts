@@ -11,6 +11,7 @@ import {
   addLabelToPR,
   removeLabelFromPR,
 } from "./networks/githubApi/handleLabels.js";
+import { postPRComment } from "./networks/githubApi/postPrComment.js";
 
 const messageForReviewedPrs =
   "The CYF AI review has left comments. It will only review a PR one time. When you have addressed these comments, please request review again and a volunteer will take a look.";

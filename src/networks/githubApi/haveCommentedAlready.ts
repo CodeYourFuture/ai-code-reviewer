@@ -1,5 +1,6 @@
 import { Octokit } from "octokit";
-import type { TimelineEvents } from "../../types/githubTypes.js";
+import type { TimelineEventsData } from "../../types/githubTypes.js";
+import { fetchAllPrEvents } from "./fetchAllPrEvents.js";
 
 export async function haveCommentedAlready(
   owner: string,
@@ -8,21 +9,20 @@ export async function haveCommentedAlready(
   octokit: Octokit,
 ): Promise<boolean> {
   try {
-    const events: TimelineEvents =
-      await octokit.rest.issues.listEventsForTimeline({
-        owner,
-        repo,
-        issue_number: pullNumber,
-      });
-    if (events.data) {
-      const commentFromBotExist = events.data.some(
-        (event) =>
+    const events: TimelineEventsData = await fetchAllPrEvents(
+      owner,
+      repo,
+      pullNumber,
+      octokit,
+    );
+
+    const commentFromBotExist = events.some(
+      (event) =>
           "user" in event && event.user?.login === "cyf-ai-code-reviewer[bot]",
-      );
-      return commentFromBotExist;
-    }
-    throw new Error("Error checking if bot has left a comment already");
+    );
+    return commentFromBotExist;
   } catch (err) {
+    console.error("Error checking if bot has left a comment already", err);
     throw err;
   }
 }

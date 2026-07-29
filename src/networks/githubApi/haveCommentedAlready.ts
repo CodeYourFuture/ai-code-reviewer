@@ -18,7 +18,7 @@ export async function haveCommentedAlready(
 
     const commentFromBotExist = events.some(
       (event) =>
-          "user" in event && event.user?.login === "cyf-ai-code-reviewer[bot]",
+        "actor" in event && event.actor?.login === "cyf-ai-code-reviewer[bot]",
     );
     return commentFromBotExist;
   } catch (err) {

@@ -5,7 +5,7 @@ import { MODEL, runAiReview } from "./networks/ai/ai_api_request.js";
 import { getPRFiles } from "./networks/githubApi/github.js";
 import { AiResponseWithId, ReviewWithPrompt } from "./types/aiResponse.js";
 import { storeReview } from "./db/storeReview.js";
-import { haveCommentedAlready } from "./networks/githubApi/haveCommentedAlready.js";
+// import { haveCommentedAlready } from "./networks/githubApi/haveCommentedAlready.js";
 import { sendOutComments } from "./utils/sendOutComments.js";
 import {
   addLabelToPR,

@@ -30,6 +30,10 @@ export async function handleLabeled(
 
   console.log(`Received a "labeled" event for PR #${pullNumber}`);
 
+  if (payload.sender.type === "Bot") {
+    return;
+  }
+
   if (
     process.env.NODE_ENV === "production" &&
     !(await checkMembershipForUser(payload.sender.login, octokit))

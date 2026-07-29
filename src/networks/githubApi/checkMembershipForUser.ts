@@ -28,11 +28,11 @@ export async function checkMembershipForUser(
     membershipCache.set(senderLogin, isMember);
     return isMember;
   } catch (error: any) {
-    console.log(error);
     if (error.status === 404) {
       membershipCache.set(senderLogin, false);
       return false;
     }
+    console.log(error);
     throw error;
   }
 }

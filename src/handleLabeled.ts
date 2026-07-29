@@ -42,13 +42,13 @@ export async function handleLabeled(
     return;
   }
 
-  if (
-    process.env.NODE_ENV === "production" &&
-    (await haveCommentedAlready(owner, repo, pullNumber, octokit))
-  ) {
-    console.log("This reviewer only review prs once");
-    return;
-  }
+  // if (
+  //   process.env.NODE_ENV === "production" &&
+  //   (await haveCommentedAlready(owner, repo, pullNumber, octokit))
+  // ) {
+  //   console.log("This reviewer only review prs once");
+  //   return;
+  // }
 
   if (label?.toLocaleLowerCase() === "needs review") {
     try {

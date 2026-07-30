@@ -1,37 +1,52 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
-import { checkMembershipForUser } from "./checkMembershipForUser.js";
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import {
+  _clearMembershipCacheForTests,
+  checkMembershipForUser,
+} from "./checkMembershipForUser.js";
+
+function makeFakeOctokit(impl: (...args: any[]) => any) {
+  return { request: vi.fn(impl) } as any;
+}
 
 describe("checkMembershipForUser", () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    _clearMembershipCacheForTests();
   });
-  const org = "CodeYourFuture";
+  it("returns true when GitHub responds 204", async () => {
+    const fakeOctokit = makeFakeOctokit(async () => ({ status: 204 }));
 
-  it("calls GitHub membership endpoint", async () => {
-    const request = vi.fn().mockResolvedValue({});
-    const octokit = { request } as any;
+    const result = await checkMembershipForUser("user", fakeOctokit);
 
-    await checkMembershipForUser("Droid-An", octokit);
+    expect(result).toBe(true);
+  });
 
-    expect(request).toHaveBeenCalledWith("GET /orgs/{org}/members/{username}", {
-      org,
-      username: "Droid-An",
+  it("returns false when GitHub responds 302", async () => {
+    const fakeOctokit = makeFakeOctokit(async () => ({ status: 302 }));
+
+    const result = await checkMembershipForUser("bob", fakeOctokit);
+
+    expect(result).toBe(false);
+  });
+
+  it("returns false on 404 error", async () => {
+    const fakeOctokit = makeFakeOctokit(async () => {
+      const err: any = new Error("Not Found");
+      err.status = 404;
+      throw err;
     });
+
+    const result = await checkMembershipForUser("carol", fakeOctokit);
+
+    expect(result).toBe(false);
   });
 
-  it("returns true if user is a member", async () => {
-    const octokit = {
-      request: vi.fn().mockResolvedValue({ status: 204 }),
-    } as any;
+  it("rethrows unexpected errors", async () => {
+    const fakeOctokit = makeFakeOctokit(async () => {
+      throw new Error("network exploded");
+    });
 
-    expect(await checkMembershipForUser("User", octokit)).toBe(true);
-  });
-
-  it("returns false if user is not a member", async () => {
-    const octokit = {
-      request: vi.fn().mockRejectedValue({ status: 404 }),
-    } as any;
-
-    expect(await checkMembershipForUser("User2", octokit)).toBe(false);
+    await expect(checkMembershipForUser("dave", fakeOctokit)).rejects.toThrow(
+      "network exploded",
+    );
   });
 });

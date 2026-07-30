@@ -1,7 +1,7 @@
 import { createNodeMiddleware } from "@octokit/webhooks";
 import express from "express";
 import { env } from "./config/env.js";
-import { githubApp } from "./githubApp.js";
+import { githubApp, orgOctokit } from "./githubApp.js";
 import { rateFeedback } from "./db/sendRate.js";
 import cors from "cors";
 import { fetchFeedbackFromUser } from "./db/fetchUserFeedback.js";
@@ -37,6 +37,7 @@ async function requireCyfMember(
 ) {
   const githubId = req.auth?.payload?.sub?.split("|")[1];
   const nickname = req.auth?.payload["https://yourapp.com/nickname"];
+  const octokit = orgOctokit;
 
   if (!githubId || isNaN(Number(githubId))) {
     return res
@@ -51,7 +52,7 @@ async function requireCyfMember(
   }
 
   try {
-    const isMember = await checkMembershipForUser(nickname);
+    const isMember = await checkMembershipForUser(nickname, octokit);
     if (isMember) return next();
     return res.status(403).json({ message: "Not a CodeYourFuture member" });
   } catch (e) {

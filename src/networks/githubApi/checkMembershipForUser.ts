@@ -1,5 +1,4 @@
-import { Octokit } from "octokit";
-import { orgOctokit } from "../../githubApp.js";
+import type { Octokit } from "octokit";
 import { AutoCleanupCache as TTLCache } from "../../utils/ttlCache.js";
 
 const orgName = "CodeYourFuture";
@@ -8,7 +7,7 @@ const membershipCache = new TTLCache<string, boolean>(600000);
 
 export async function checkMembershipForUser(
   senderLogin: string,
-  octokit: Octokit = orgOctokit,
+  octokit: Octokit,
 ) {
   const cached = membershipCache.get(senderLogin);
   if (cached !== undefined) {
@@ -35,4 +34,8 @@ export async function checkMembershipForUser(
     console.log(error);
     throw error;
   }
+}
+
+export function _clearMembershipCacheForTests() {
+  membershipCache.destroy();
 }

@@ -2,7 +2,7 @@ import type { EmitterWebhookEvent } from "@octokit/webhooks";
 import { Octokit } from "octokit";
 import { checkMembershipForUser } from "./networks/githubApi/checkMembershipForUser.js";
 import { MODEL, runAiReview } from "./networks/ai/ai_api_request.js";
-import { getPRFiles, logPRFiles } from "./networks/githubApi/github.js";
+import { getPRFiles } from "./networks/githubApi/github.js";
 import { AiResponseWithId, ReviewWithPrompt } from "./types/aiResponse.js";
 import { storeReview } from "./db/storeReview.js";
 import { haveCommentedAlready } from "./networks/githubApi/haveCommentedAlready.js";
@@ -28,7 +28,7 @@ export async function handleLabeled(
   const commitId = payload.pull_request.head.sha;
   const label = payload.label?.name;
 
-  console.log(`Received a "labeled" event for PR #${pullNumber}`);
+  console.log(`Received a "labeled" event for ${repo}/${pullNumber}`);
 
   if (payload.sender.type === "Bot") {
     return;

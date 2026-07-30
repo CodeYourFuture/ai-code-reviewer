@@ -1,6 +1,6 @@
 import fs from "node:fs";
 import { Octokit } from "octokit";
-import { getPRFiles, logPRFiles } from "../networks/githubApi/github.js";
+import { getPRFiles } from "../networks/githubApi/github.js";
 
 export function parsePRUrl(url: string) {
   const match = url.match(/github\.com\/([^/]+)\/([^/]+)\/pull\/(\d+)/);
@@ -20,7 +20,6 @@ async function run(prUrl: string) {
   const { owner, repo, pullNumber } = parsePRUrl(prUrl);
   const octokit = new Octokit();
   const res = await getPRFiles(owner, repo, pullNumber, octokit);
-  logPRFiles(owner, repo, pullNumber, res);
   fs.writeFileSync(`output${pullNumber}.json`, JSON.stringify(res, null, 2));
 }
 

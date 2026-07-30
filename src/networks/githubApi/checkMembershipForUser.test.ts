@@ -21,10 +21,10 @@ describe("checkMembershipForUser", () => {
 
   it("returns true if user is a member", async () => {
     const octokit = {
-      request: vi.fn().mockResolvedValue({}),
+      request: vi.fn().mockResolvedValue({ status: 204 }),
     } as any;
 
-    expect(await checkMembershipForUser("Droid-An", octokit)).toBe(true);
+    expect(await checkMembershipForUser("User", octokit)).toBe(true);
   });
 
   it("returns false if user is not a member", async () => {
@@ -32,6 +32,6 @@ describe("checkMembershipForUser", () => {
       request: vi.fn().mockRejectedValue({ status: 404 }),
     } as any;
 
-    expect(await checkMembershipForUser("Droid-An", octokit)).toBe(false);
+    expect(await checkMembershipForUser("User2", octokit)).toBe(false);
   });
 });

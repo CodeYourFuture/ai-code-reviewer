@@ -14,6 +14,5 @@ export async function fetchFeedbackFromUser(
   const values = [userId, commentId];
 
   const result = await pool.query(query, values);
-  console.log(result.rows);
   return result.rows;
 }

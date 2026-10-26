@@ -2,6 +2,7 @@ import { createNodeMiddleware } from "@octokit/webhooks";
 import express from "express";
 import { env } from "./config/env.js";
 import { githubApp, orgOctokit } from "./githubApp.js";
+import { isGithubUserAllowed } from "./config/access.js";
 import { rateFeedback } from "./db/sendRate.js";
 import cors from "cors";
 import { fetchFeedbackFromUser } from "./db/fetchUserFeedback.js";
@@ -30,14 +31,13 @@ const checkJwt = auth({
   issuerBaseURL: `https://${env.AUTH0_DOMAIN}`,
 });
 
-async function requireCyfMember(
+async function requireAllowedGithubUser(
   req: Request,
   res: Response,
   next: NextFunction,
 ) {
   const githubId = req.auth?.payload?.sub?.split("|")[1];
   const nickname = req.auth?.payload["https://yourapp.com/nickname"];
-  const octokit = orgOctokit;
 
   if (!githubId || isNaN(Number(githubId))) {
     return res
@@ -52,9 +52,12 @@ async function requireCyfMember(
   }
 
   try {
-    const isMember = await checkMembershipForUser(nickname, octokit);
+    const isMember = await isGithubUserAllowed(nickname, env, async () => {
+      if (!orgOctokit) throw new Error("Organization client is unavailable");
+      return checkMembershipForUser(nickname, orgOctokit, env.GITHUB_MEMBERSHIP_ORG);
+    });
     if (isMember) return next();
-    return res.status(403).json({ message: "Not a CodeYourFuture member" });
+    return res.status(403).json({ message: "GitHub user is not authorized" });
   } catch (e) {
     console.error(e);
     return res.status(502).json({ message: "Membership check failed" });
@@ -65,7 +68,7 @@ server.get("/health", (_, res) => {
   res.json({ status: "ok", message: "Server is healthy" });
 });
 
-server.post("/reaction/:id", checkJwt, requireCyfMember, async (req, res) => {
+server.post("/reaction/:id", checkJwt, requireAllowedGithubUser, async (req, res) => {
   const { id } = req.params;
   if (!id || isNaN(Number(id))) {
     return res.status(400).json({ message: "Invalid or missing id" });
@@ -103,7 +106,7 @@ server.post("/reaction/:id", checkJwt, requireCyfMember, async (req, res) => {
 server.get(
   "/hasUserRatedComment/:id",
   checkJwt,
-  requireCyfMember,
+  requireAllowedGithubUser,
   async (req, res) => {
     const { id } = req.params;
     if (!id || isNaN(Number(id))) {

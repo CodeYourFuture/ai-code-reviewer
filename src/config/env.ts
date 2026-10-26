@@ -1,6 +1,7 @@
 import dotenv from "dotenv";
 import fs from "node:fs";
 import * as z from "zod";
+import { accessSchema } from "./access.js";
 dotenv.config();
 
 const envSchema = z.object({
@@ -28,7 +29,7 @@ const envSchema = z.object({
   FRONTEND_BASE_URL: z.url(),
 });
 
-const parsed = envSchema.safeParse(process.env);
+const parsed = envSchema.and(accessSchema).safeParse(process.env);
 
 if (!parsed.success) {
   console.error("❌ Invalid environment variables", parsed.error);

@@ -29,6 +29,8 @@ function makeEvent(labelName: string, sha = "abc123") {
   };
 }
 
+vi.mock("./config/env.js", () => ({ env: { NODE_ENV: "development", DEV_GITHUB_USER_ALLOWLIST: ["droid-an"], GITHUB_MEMBERSHIP_ORG: "ExampleOrg" } }));
+
 vi.mock(import("./networks/githubApi/github.js"), { spy: true });
 vi.mock(import("./networks/ai/ai_api_request.js"), { spy: true });
 vi.mock("./networks/postInlineComment.js", () => ({
@@ -55,5 +57,13 @@ describe("handleLabeled", () => {
       expect.anything(),
     );
     expect(runAiReview).toHaveBeenCalled();
+  });
+
+  it("does not review PRs triggered by a user outside the development allowlist", async () => {
+    const event = makeEvent("needs review");
+    event.payload.sender.login = "someone-else";
+    await handleLabeled(event);
+    expect(getPRFiles).not.toHaveBeenCalled();
+    expect(runAiReview).not.toHaveBeenCalled();
   });
 });

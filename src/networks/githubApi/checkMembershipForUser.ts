@@ -1,15 +1,15 @@
 import type { Octokit } from "octokit";
 import { AutoCleanupCache as TTLCache } from "../../utils/ttlCache.js";
 
-const orgName = "CodeYourFuture";
-
 const membershipCache = new TTLCache<string, boolean>(600000);
 
 export async function checkMembershipForUser(
   senderLogin: string,
   octokit: Octokit,
+  orgName: string,
 ) {
-  const cached = membershipCache.get(senderLogin);
+  const cacheKey = `${orgName.toLowerCase()}/${senderLogin.toLowerCase()}`;
+  const cached = membershipCache.get(cacheKey);
   if (cached !== undefined) {
     return cached;
   }
@@ -20,15 +20,15 @@ export async function checkMembershipForUser(
     });
     if (res.status === 302) {
       // 302 = requester (octokit instance in this case) is not an org member, so membership can't be confirmed
-      membershipCache.set(senderLogin, false);
+      membershipCache.set(cacheKey, false);
       return false;
     }
     const isMember = res.status === 204;
-    membershipCache.set(senderLogin, isMember);
+    membershipCache.set(cacheKey, isMember);
     return isMember;
   } catch (error: any) {
     if (error.status === 404) {
-      membershipCache.set(senderLogin, false);
+      membershipCache.set(cacheKey, false);
       return false;
     }
     console.log(error);

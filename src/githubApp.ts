@@ -20,15 +20,18 @@ githubApp.webhooks.onError((error) => {
   }
 });
 
-const installationOrg = await githubApp.octokit.request(
-  "GET /orgs/CodeYourFuture/installation",
-  {
-    headers: {
-      "X-GitHub-Api-Version": "2022-11-28",
+// Development authorization uses the allowlist and needs no organization client.
+export const orgOctokit = await (async () => {
+  if (env.NODE_ENV !== "production") return undefined;
+
+  const installationOrg = await githubApp.octokit.request(
+    "GET /orgs/{org}/installation",
+    {
+      org: env.GITHUB_MEMBERSHIP_ORG,
+      headers: {
+        "X-GitHub-Api-Version": "2022-11-28",
+      },
     },
-  },
-);
-// orgOctokit is an octokit instance that can request github api on behalf of the app installed on the CodeYourFuture repo
-export const orgOctokit = await githubApp.getInstallationOctokit(
-  installationOrg.data.id,
-);
+  );
+  return githubApp.getInstallationOctokit(installationOrg.data.id);
+})();

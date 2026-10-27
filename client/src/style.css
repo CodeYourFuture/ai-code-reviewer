@@ -80,12 +80,6 @@ body {
   animation: fadeInScale 0.8s ease-out forwards;
 }
 
-.auth0-logo {
-  width: 160px;
-  margin-bottom: 1.5rem;
-  opacity: 0;
-  animation: slideInDown 1s ease-out forwards 0.2s;
-}
 
 .main-title {
   font-size: 2.8rem;
@@ -283,9 +277,6 @@ body {
     font-size: 1.1rem;
   }
 
-  .auth0-logo {
-    width: 120px;
-  }
 
   .action-card {
     padding: 2rem;

@@ -28,7 +28,7 @@ Use a separate development GitHub App under your existing personal account. This
 1. Open GitHub **Settings > Developer settings > GitHub Apps > New GitHub App**, or go directly to [New GitHub App](https://github.com/settings/apps/new).
 2. Enter a unique app name, for example `yourname-ai-reviewer-dev`.
 3. Set **Homepage URL** to this project's public repository URL or your GitHub profile URL. This is informational; it does not select the repositories the bot reviews.
-4. Leave **Callback URL** and **Setup URL** blank. Leave **Request user authorization (OAuth) during installation** and **Enable Device Flow** unchecked. The bot authenticates as an app installation; user login for ratings is handled separately by Auth0 below.
+4. Set **Callback URL** to `http://localhost:3000/api/auth/callback` for your development app. Leave **Setup URL** blank and **Request user authorization (OAuth) during installation** and **Enable Device Flow** unchecked. The same GitHub App handles bot installation authentication and direct user login; see the feedback login setup below.
 5. Configure webhooks:
    - Keep **Active** checked and SSL verification enabled.
    - Set **Webhook URL** to the full Smee channel URL from the previous step. Use that same URL for `WEBHOOK_PROXY_URL` in `.env`.
@@ -71,7 +71,7 @@ DEV_GITHUB_USER_ALLOWLIST="your-github-username,another-tester"
 GITHUB_MEMBERSHIP_ORG="CodeYourFuture"
 ```
 
-In development, only usernames in the comma-separated allowlist may trigger reviews or rate feedback. Matching is case-insensitive and surrounding whitespace is ignored. An empty list denies everyone. Ratings still require Auth0 login; the backend checks the GitHub nickname in the validated token. The organization installation is not queried for development access, so a personal GitHub App works.
+In development, only usernames in the comma-separated allowlist may trigger reviews or rate feedback. Matching is case-insensitive and surrounding whitespace is ignored. An empty list denies everyone. Ratings still require GitHub login; the backend checks the GitHub username in its signed application session. The organization installation is not queried for development access, so a personal GitHub App works.
 
 In production, set `NODE_ENV="production"`, leave `DEV_GITHUB_USER_ALLOWLIST` empty, and set `GITHUB_MEMBERSHIP_ORG` to the organization whose members may use the app. Install the app on that organization with organization **Members: read-only** permission, in addition to the repository permissions above. Production initializes the organization client at startup; if the installation lookup fails, the backend fails to start. Development skips that initialization and uses the allowlist. Production review events check membership using the event's installation client, which must have access to the configured organization's membership.
 
@@ -81,125 +81,57 @@ After starting the backend and Smee client as described below, manually add **Ne
 
 See GitHub's documentation for [registering an app](https://docs.github.com/en/apps/creating-github-apps/registering-a-github-app/registering-a-github-app) and [managing its private keys](https://docs.github.com/en/apps/creating-github-apps/authenticating-with-a-github-app/managing-private-keys-for-github-apps).
 
-### Configure Auth0 for feedback ratings
+### Configure GitHub login for feedback ratings
 
-Auth0 authenticates people who like or dislike the bot's feedback. The frontend signs users in through GitHub using the Auth0 SPA SDK; the backend validates Auth0 access tokens before checking the development allowlist or production organization membership. Auth0 is not involved in generating reviews or authenticating the bot to GitHub. The current backend configuration nevertheless requires Auth0 settings at startup.
+The reviewer GitHub App also authenticates people submitting feedback. The backend redirects to GitHub, exchanges the authorization code using PKCE, fetches the authenticated GitHub user, and checks the development allowlist or production organization membership. It issues a signed application session in an HttpOnly cookie. GitHub user/refresh tokens are not persisted or sent to frontend JavaScript.
 
-There are three separate registrations in this setup:
+1. Open the same GitHub App used by the reviewer (use your personal development App locally).
+2. Register the appropriate **Callback URL**:
 
-| Registration | Where | Purpose |
-| --- | --- | --- |
-| Reviewer GitHub App | GitHub > Developer settings > GitHub Apps | Receives webhooks and posts reviews using its App ID and private key |
-| Login GitHub OAuth App | GitHub > Developer settings > OAuth Apps | Lets Auth0 sign users in with GitHub |
-| Auth0 Single Page Application (SPA) | Auth0 > Applications > Applications | Connects the frontend to Auth0 using its Client ID |
-
-The existing reviewer GitHub App could support direct user login with code changes, but this project currently uses Auth0 and a separate GitHub OAuth App. Do not mix their IDs or secrets.
-
-#### 1. Create an Auth0 tenant
-
-1. **On Auth0:** Create an account and tenant at [auth0.com](https://auth0.com/).
-2. Copy the tenant's exact domain, including any regional component, for example `my-dev-tenant.us.auth0.com`.
-3. Set backend `AUTH0_DOMAIN` and frontend `VITE_AUTH0_DOMAIN` to that hostname, without `https://`, a trailing slash, or `/login/callback`.
-
-#### 2. Create the Auth0 frontend application
-
-1. **On Auth0:** Go to **Applications > Applications > Create Application** and choose **Single Page Application**.
-2. Open its **Settings** tab and configure:
-
-   | Setting | Local development value |
+   | Environment | Callback URL |
    | --- | --- |
-   | Allowed Callback URLs | `http://localhost:5173` |
-   | Allowed Logout URLs | `http://localhost:5173` |
-   | Allowed Web Origins | `http://localhost:5173` |
+   | Local development | `http://localhost:3000/api/auth/callback` |
+   | Production | `https://YOUR_BACKEND_URL/api/auth/callback` |
 
-3. Save changes and copy this Auth0 application's **Client ID** for `VITE_AUTH0_CLIENT_ID`. This is not the GitHub OAuth Client ID or reviewer App ID. No Auth0 client secret belongs in the frontend.
+3. Copy the App's **Client ID** and generate a **Client secret**. These are separate from the numeric `APP_ID`, private key, and webhook secret. No separate OAuth App is needed. GitHub Apps use registered permissions, so the login does not request OAuth scopes. No email permission is needed.
+4. Generate a session signing secret locally:
 
-#### 3. Connect GitHub login to Auth0
-
-1. **On Auth0:** Go to **Authentication > Social > Create Connection**, select **GitHub**, and open its settings. Keep this page open while you create the GitHub OAuth App in another tab. The connection needs that app's Client ID and Client Secret.
-2. **On GitHub:** Go to **Settings > Developer settings > OAuth Apps > New OAuth App**.
-3. **On GitHub:** Enter an application name, a homepage URL (for example your full Auth0 tenant URL, `https://my-dev-tenant.us.auth0.com`), and the **Authorization callback URL** (also called the redirect URI):
-
-   ```text
-   https://my-dev-tenant.us.auth0.com/login/callback
+   ```sh
+   node -e "console.log(require('node:crypto').randomBytes(32).toString('hex'))"
    ```
 
-   Replace the example hostname with your exact Auth0 domain. Copy the callback URL displayed in Auth0's GitHub connection setup, especially if you use a custom domain. `https://.auth0.com/login/callback` is incomplete. This callback returns the user to Auth0, not directly to localhost.
-4. **On GitHub:** Register the OAuth App, copy its **Client ID**, and generate a **Client Secret**.
-5. **Back on Auth0:** Paste those GitHub credentials into the GitHub connection settings and save. These credentials stay in Auth0; they are not the `APP_ID`, private key, or `VITE_AUTH0_CLIENT_ID` used by this project.
-6. **On Auth0:** Open the connection's **Applications** tab and enable it for the SPA created in step 2. Keep GitHub as the login provider for this application; the backend expects a GitHub identity.
+5. Set these backend variables in the root `.env`:
 
-The redirect journey is: frontend -> Auth0 -> GitHub -> Auth0 -> frontend.
-
-| Configured in | URL | Purpose |
-| --- | --- | --- |
-| GitHub OAuth App: Authorization callback URL / redirect URI | `https://<your-auth0-domain>/login/callback` | GitHub returns the user to Auth0 |
-| Auth0 SPA: Allowed Callback URLs | `http://localhost:5173` | Auth0 returns the user to the frontend |
-
-See [Auth0's GitHub login guide](https://auth0.com/docs/authenticate/identity-providers/social-identity-providers/github).
-
-#### 4. Register the backend API in Auth0
-
-1. **On Auth0:** Go to **Applications > APIs > Create API**.
-2. Give the API a name and a stable URL-shaped **Identifier**, for example `https://ai-reviewer-api`. The project's environment validation requires a URL. This is an identifier, not a callback address, and it does not need to host a website.
-3. Use the API's **Identifier** exactly as both backend `AUTH0_AUDIENCE` and frontend `VITE_AUTH0_AUDIENCE`. Keep the signing algorithm as **RS256**.
-4. **On Auth0:** Open the API's **Application Access** tab. Find the SPA created in step 2 by its name or Client ID (the value used for `VITE_AUTH0_CLIENT_ID`), and click **Grant Access** for **User-Delegated Access**. If the API's **Settings > Application Access Policy** requires per-app authorization, this grant is required before the SPA can request tokens for the API. This is user login access, not machine-to-machine/client access.
-5. The application may show **0/0 permissions granted** because this API defines no custom scopes. You do not need to create permissions for the current ratings implementation; granting the SPA access is separate from selecting scopes. Save any changes and retry login from a feedback URL such as `http://localhost:5173/?id=1`, using an existing feedback-point ID.
-
-If login returns `Client "..." is not authorized to access resource server "..."`, confirm that you granted access to the correct SPA on the API matching the requested audience. If it returns `Service not found`, confirm that an API with that exact Identifier exists in the tenant specified by `VITE_AUTH0_DOMAIN`. See [Auth0's API access-policy guide](https://auth0.com/blog/developers-guide-api-access-policies-auth0/).
-
-The audience identifies the API for which the token was issued. The domain identifies the Auth0 tenant issuing it. Neither is the custom claim name below.
-
-#### 5. Add the GitHub username to access tokens
-
-1. **On Auth0:** Go to **Actions > Library** and create a custom Action for the **Login / Post Login** trigger.
-2. Add the following JavaScript and deploy the Action:
-
-   ```js
-   exports.onExecutePostLogin = async (event, api) => {
-     api.accessToken.setCustomClaim(
-       "https://yourapp.com/nickname",
-       event.user.nickname
-     );
-   };
+   ```env
+   GITHUB_APP_CLIENT_ID="<client-id-from-the-reviewer-GitHub-App>"
+   GITHUB_APP_CLIENT_SECRET="<client-secret-from-that-App>"
+   GITHUB_OAUTH_CALLBACK_URL="http://localhost:3000/api/auth/callback"
+   SESSION_SECRET_KEY="<random-secret-at-least-32-characters>"
+   SESSION_EXPIRE_HOURS=24
+   FRONTEND_BASE_URL="http://localhost:5173"
    ```
 
-3. **On Auth0:** Open **Actions > Triggers** (or **Flows**, depending on the dashboard layout), select **Login / Post Login**, and add the deployed Action between **Start** and **Complete**. Apply/save the flow. Deploying the Action alone does not attach it to login.
+6. Set the frontend's `client/.env`:
 
-For the GitHub connection, this Action copies the user's nickname into a custom access-token claim. The backend expects that value to be the GitHub username and uses it for access checks and rating attribution. The resulting payload includes a field such as:
+   ```env
+   VITE_API_BASE_URL="http://localhost:3000"
+   ```
 
-```json
-{
-  "https://yourapp.com/nickname": "your-github-username"
-}
-```
+Only the API URL belongs in frontend configuration. Restart local servers after changing variables. Use `localhost` consistently for both services; do not mix it with `127.0.0.1`.
 
-**Keep the claim name exactly as shown for the current code.** `src/server.ts` reads `https://yourapp.com/nickname` explicitly. This URL is a namespace for the claim name: it is not visited, need not resolve, and is unrelated to the callback URL or API audience.
+Production keeps two independently deployed services, the backend and the feedback frontend.
 
-Namespacing custom claims avoids collisions. For a new design, prefer a stable namespace based on a domain your organization controls and a precise field such as `https://<organization-domain>/ai-code-reviewer/github_username`. The current `yourapp.com` name is a placeholder retained for compatibility. Renaming it requires coordinated changes to the Auth0 Action and every backend lookup; changing the Action alone will break ratings. See [Auth0's custom claim guidance](https://auth0.com/docs/secure/tokens/json-web-tokens/create-custom-claims).
+Set `GITHUB_OAUTH_CALLBACK_URL` to the production callback above, `FRONTEND_BASE_URL` to the feedback frontend origin, and frontend `VITE_API_BASE_URL` to the backend origin. The URLs must use HTTPS in production. These hostnames are different origins but the same site. The backend allows credentialed CORS only for the configured frontend origin; frontend requests use `credentials: "include"`. Session cookies are host-only (no `Domain`), `HttpOnly`, `SameSite=Lax`, and `Secure` with the `__Host-` prefix in production. Both session and login cookies use `Path=/`.
 
-#### 6. Set matching backend and frontend environment values
+The login transaction expires after five minutes. The callback validates browser-bound state and PKCE, then returns to the configured frontend with the original feedback `?id=...`; redirects cannot target arbitrary external URLs. Login errors retain the comment ID when a valid transaction is available. Open the original feedback link again if the transaction cookie has expired.
 
-In the repository root `.env`:
+Sessions have a **fixed 24-hour expiry** by default, configurable from 1 to 168 hours through `SESSION_EXPIRE_HOURS`; activity does not renew them. Every protected ratings request rechecks authorization using the existing ten-minute membership cache. Organization removal can take up to that cache lifetime to take effect. Development uses only the username allowlist. Missing/expired sessions return 401, denied users 403, and membership lookup failures 502. Login errors appear on the feedback page.
 
-```env
-AUTH0_DOMAIN="my-dev-tenant.us.auth0.com"
-AUTH0_AUDIENCE="https://ai-reviewer-api"
-FRONTEND_BASE_URL="http://localhost:5173"
-```
+`GET /api/auth/me` returns the user's numeric GitHub ID and login plus a session-bound CSRF token. Browser mutations (`POST /reaction/:id` and `POST /api/auth/logout`) require that token in `X-CSRF-Token` and the exact configured frontend `Origin`. Webhooks continue using their own signature verification without browser authentication or CSRF requirements.
 
-Copy `client/.env.example` to `client/.env` and configure:
+Logout clears this browser's cookies and leaves the feedback ID in the URL; it does not log the user out of GitHub. A copied session token remains valid until expiry because sessions are stateless. Rotating `SESSION_SECRET_KEY` invalidates all sessions. GitHub authorization revocation does not immediately revoke these local sessions; expiry and the request-time access policy still apply.
 
-```env
-VITE_AUTH0_DOMAIN="my-dev-tenant.us.auth0.com"
-VITE_AUTH0_CLIENT_ID="<client-id-from-the-Auth0-SPA>"
-VITE_AUTH0_AUDIENCE="https://ai-reviewer-api"
-VITE_API_BASE_URL="http://localhost:3000"
-```
-
-Use your own tenant, SPA Client ID, and API Identifier. Domain and audience must match between backend and frontend. `FRONTEND_BASE_URL` supplies links in the bot's comments; `VITE_API_BASE_URL` tells the frontend where to send ratings requests. Restart the development servers after changing environment values.
-
-To test ratings, follow a feedback link from a bot comment (the frontend needs its `id` query parameter) and sign in with GitHub. In development, ensure your GitHub username is in `DEV_GITHUB_USER_ALLOWLIST`. Authentication via Auth0 does not by itself grant permission to submit ratings. After changing the Action, log out and sign in again to obtain a token with the new claim.
+Follow a bot feedback link and sign in to test. The numeric GitHub ID continues to identify ratings, preserving existing feedback and duplicate-rating checks. See [GitHub's user authorization documentation](https://docs.github.com/en/apps/creating-github-apps/authenticating-with-a-github-app/generating-a-user-access-token-for-a-github-app).
 
 ### Get AI API key
 
@@ -225,14 +157,15 @@ DATABASE_USER="ai_reviewer_dev"
 DATABASE_PASSWORD="<replace-with-generated-password>"
 DATABASE_NAME="ai_reviewer_dev"
 DATABASE_URL="postgres://ai_reviewer_dev:<same-generated-password>@localhost:5432/ai_reviewer_dev"
-
-
-AUTH0_DOMAIN="your-tenant-domain"
-AUTH0_AUDIENCE="your-audience"
+GITHUB_APP_CLIENT_ID="your-app-client-id"
+GITHUB_APP_CLIENT_SECRET="your-app-client-secret"
+GITHUB_OAUTH_CALLBACK_URL="http://localhost:3000/api/auth/callback"
+SESSION_SECRET_KEY="your-generated-random-secret-at-least-32-characters"
+SESSION_EXPIRE_HOURS=24
 FRONTEND_BASE_URL="http://localhost:5173"
 ```
 
-For the frontend, copy the example environment file in the `client` folder and add all credentials
+For the frontend, copy `client/.env.example` to `client/.env` and set the public `VITE_API_BASE_URL`. Keep all secrets in the backend environment.
 
 ### Configure PostgreSQL for local development
 

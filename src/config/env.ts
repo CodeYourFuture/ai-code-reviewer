@@ -2,6 +2,7 @@ import dotenv from "dotenv";
 import fs from "node:fs";
 import * as z from "zod";
 import { accessSchema } from "./access.js";
+import { authSchema } from "../auth/config.js";
 dotenv.config();
 
 const envSchema = z.object({
@@ -20,19 +21,31 @@ const envSchema = z.object({
 
   // Database
   DATABASE_URL: z.string(),
-
-  //auth0
-  AUTH0_DOMAIN: z.string(),
-  AUTH0_AUDIENCE: z.url(),
-
-  //Frontend url to add to links in comments
-  FRONTEND_BASE_URL: z.url(),
 });
 
-const parsed = envSchema.and(accessSchema).safeParse(process.env);
+const parsed = envSchema
+  .and(accessSchema)
+  .and(authSchema)
+  .superRefine((config, ctx) => {
+    if (
+      config.NODE_ENV === "production" &&
+      [config.FRONTEND_BASE_URL, config.GITHUB_OAUTH_CALLBACK_URL].some(
+        (url) => URL.canParse(url) && new URL(url).protocol !== "https:",
+      )
+    ) {
+      ctx.addIssue({
+        code: "custom",
+        message: "Production frontend and callback URLs must use HTTPS",
+      });
+    }
+  })
+  .safeParse(process.env);
 
 if (!parsed.success) {
-  console.error("❌ Invalid environment variables", parsed.error);
+  console.error(
+    "Invalid environment variables:",
+    parsed.error.issues.map(({ path, message }) => ({ path, message })),
+  );
   process.exit(1);
 }
 export const env = parsed.data;

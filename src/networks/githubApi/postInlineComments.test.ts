@@ -1,5 +1,10 @@
-import { expect, test } from "vitest";
+import { expect, test, vi } from "vitest";
 import { formReviewParams } from "./postInlineComment.js";
+
+// These formatting tests do not need deployment credentials or a local .env.
+vi.mock("../../config/env.js", () => ({
+  env: { FRONTEND_BASE_URL: "https://feedback.example" },
+}));
 
 test("create start line and line when two numbers", () => {
   expect(formReviewParams([46, 49])).toEqual({ start_line: 46, line: 49 });

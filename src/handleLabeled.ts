@@ -1,5 +1,7 @@
 import type { EmitterWebhookEvent } from "@octokit/webhooks";
 import { Octokit } from "octokit";
+import { env } from "./config/env.js";
+import { isGithubUserAllowed } from "./config/access.js";
 import { checkMembershipForUser } from "./networks/githubApi/checkMembershipForUser.js";
 import { MODEL, runAiReview } from "./networks/ai/ai_api_request.js";
 import { getPRFiles } from "./networks/githubApi/github.js";
@@ -35,15 +37,16 @@ export async function handleLabeled(
   }
 
   if (
-    process.env.NODE_ENV === "production" &&
-    !(await checkMembershipForUser(payload.sender.login, octokit))
+    !(await isGithubUserAllowed(payload.sender.login, env, () =>
+      checkMembershipForUser(payload.sender.login, octokit, env.GITHUB_MEMBERSHIP_ORG),
+    ))
   ) {
-    console.log("sender isn't a member of cyf");
+    console.log("sender is not authorized");
     return;
   }
 
   if (
-    process.env.NODE_ENV === "production" &&
+    env.NODE_ENV === "production" &&
     (await haveCommentedAlready(owner, repo, pullNumber, octokit))
   ) {
     console.log("This reviewer only review prs once");

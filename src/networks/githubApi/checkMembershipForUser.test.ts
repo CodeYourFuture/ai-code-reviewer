@@ -15,15 +15,27 @@ describe("checkMembershipForUser", () => {
   it("returns true when GitHub responds 204", async () => {
     const fakeOctokit = makeFakeOctokit(async () => ({ status: 204 }));
 
-    const result = await checkMembershipForUser("user", fakeOctokit);
+    const result = await checkMembershipForUser("user", fakeOctokit, "ExampleOrg");
 
     expect(result).toBe(true);
+    expect(fakeOctokit.request).toHaveBeenCalledWith("GET /orgs/{org}/members/{username}", {
+      org: "ExampleOrg",
+      username: "user",
+    });
+  });
+
+  it("does not reuse membership results across organizations", async () => {
+    const fakeOctokit = makeFakeOctokit(async () => ({ status: 204 }));
+    await checkMembershipForUser("user", fakeOctokit, "FirstOrg");
+    fakeOctokit.request.mockResolvedValue({ status: 302 });
+    expect(await checkMembershipForUser("user", fakeOctokit, "SecondOrg")).toBe(false);
+    expect(fakeOctokit.request).toHaveBeenCalledTimes(2);
   });
 
   it("returns false when GitHub responds 302", async () => {
     const fakeOctokit = makeFakeOctokit(async () => ({ status: 302 }));
 
-    const result = await checkMembershipForUser("bob", fakeOctokit);
+    const result = await checkMembershipForUser("bob", fakeOctokit, "ExampleOrg");
 
     expect(result).toBe(false);
   });
@@ -35,7 +47,7 @@ describe("checkMembershipForUser", () => {
       throw err;
     });
 
-    const result = await checkMembershipForUser("carol", fakeOctokit);
+    const result = await checkMembershipForUser("carol", fakeOctokit, "ExampleOrg");
 
     expect(result).toBe(false);
   });
@@ -45,7 +57,7 @@ describe("checkMembershipForUser", () => {
       throw new Error("network exploded");
     });
 
-    await expect(checkMembershipForUser("dave", fakeOctokit)).rejects.toThrow(
+    await expect(checkMembershipForUser("dave", fakeOctokit, "ExampleOrg")).rejects.toThrow(
       "network exploded",
     );
   });

@@ -1,6 +1,3 @@
-import { createAuth0Client } from "@auth0/auth0-spa-js";
-
-// DOM elements
 const loading = document.getElementById("loading");
 const error = document.getElementById("error");
 const errorDetails = document.getElementById("error-details");
@@ -13,175 +10,103 @@ const likeBtn = document.getElementById("like-btn");
 const dislikeBtn = document.getElementById("dislike-btn");
 const closeBtn = document.getElementById("close-btn");
 const submissionMsg = document.querySelector(".logged-in-message");
-let auth0Client;
-let commentId = identifyFeedbackCommentId();
+const API_BASE = import.meta.env.VITE_API_BASE_URL.replace(/\/$/, "");
+const params = new URLSearchParams(window.location.search);
+const commentId = params.get("id");
+let csrfToken;
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL;
-// Initialize Auth0 client
-async function initAuth0() {
-  try {
-    auth0Client = await createAuth0Client({
-      domain: import.meta.env.VITE_AUTH0_DOMAIN,
-      clientId: import.meta.env.VITE_AUTH0_CLIENT_ID,
-      authorizationParams: {
-        redirect_uri: window.location.origin,
-        audience: import.meta.env.VITE_AUTH0_AUDIENCE,
-      },
-    });
-
-    // Check if user is returning from login
-    if (
-      window.location.search.includes("code=") &&
-      window.location.search.includes("state=")
-    ) {
-      await handleRedirectCallback();
-    }
-    // Update UI based on authentication state
-    await updateUI();
-  } catch (err) {
-    showError(err.message);
+async function api(path, options = {}) {
+  const response = await fetch(`${API_BASE}${path}`, {
+    ...options,
+    credentials: "include",
+    headers: {
+      ...(options.method === "POST"
+        ? { "Content-Type": "application/json", "X-CSRF-Token": csrfToken }
+        : {}),
+      ...options.headers,
+    },
+  });
+  if (response.status === 401) {
+    csrfToken = undefined;
+    showLoggedOut();
+    const err = new Error(
+      "Your session has expired. Please sign in with GitHub.",
+    );
+    err.status = 401;
+    throw err;
   }
+  const data = response.status === 204 ? null : await response.json();
+  if (!response.ok)
+    throw new Error(data?.message || `Request failed: ${response.status}`);
+  return data;
 }
 
-async function getAccessToken() {
-  const isAuthenticated = await auth0Client.isAuthenticated();
-  if (!isAuthenticated) throw new Error("User is not authenticated");
-  return await auth0Client.getTokenSilently();
-}
-
-function identifyFeedbackCommentId() {
-  return new URLSearchParams(document.location.search).get("id");
-}
-// Handle redirect callback
-async function handleRedirectCallback() {
-  try {
-    const { appState } = await auth0Client.handleRedirectCallback();
-
-    commentId = appState?.commentId;
-
-    // Clean up the URL to remove query parameters
-    window.history.replaceState({}, document.title, window.location.pathname);
-  } catch (err) {
-    showError(err.message);
-  }
-}
-
-// Update UI based on authentication state
-async function updateUI() {
-  if (!commentId) {
-    showError("No comment ID found in URL");
-    hideLoading();
+async function initAuth() {
+  hideError();
+  if (
+    !commentId ||
+    !/^[1-9]\d*$/.test(commentId) ||
+    !Number.isSafeInteger(Number(commentId))
+  ) {
+    showError(
+      "No valid comment ID found. Please reopen the feedback link from GitHub.",
+    );
     return;
   }
   try {
-    const isAuthenticated = await auth0Client.isAuthenticated();
-
-    if (isAuthenticated) {
-      const res = await hasUserRatedComment();
-      if (res === true) {
-        throw new Error("User has already submitted feedback for that comment");
-      }
-      showLoggedIn();
-    } else {
-      showLoggedOut();
-    }
-
-    hideLoading();
+    const session = await api("/api/auth/me");
+    csrfToken = session.csrfToken;
+    const rated = await api(`/hasUserRatedComment/${commentId}`);
+    if (typeof rated.message !== "boolean")
+      throw new Error("Unexpected feedback response");
+    if (rated.message)
+      showMessage("You have already submitted feedback for this comment");
+    else showLoggedIn();
   } catch (err) {
-    hideLoading();
-    showMessage(err.message);
+    if (err.status !== 401) showError(err.message);
+  }
+  const loginError = params.get("error");
+  if (loginError) {
+    showError(loginError);
+    params.delete("error");
+    window.history.replaceState(
+      {},
+      "",
+      `${window.location.pathname}?${params}`,
+    );
   }
 }
-// Event handlers
-async function login() {
-  try {
-    await auth0Client.loginWithRedirect({
-      connection: "github",
-      //i need to pass comment id in order to keep it in state after login process
-      appState: { commentId: commentId },
-    });
-  } catch (err) {
-    showError(err.message);
-  }
+
+function login() {
+  const url = new URL(`${API_BASE}/api/auth/login`);
+  url.searchParams.set("id", commentId);
+  window.location.assign(url.href);
 }
 
 async function logout() {
   try {
-    await auth0Client.logout({
-      logoutParams: {
-        returnTo: window.location.origin,
-      },
-    });
+    await api("/api/auth/logout", { method: "POST", body: "{}" });
+    csrfToken = undefined;
+    hideError();
+    showLoggedOut();
   } catch (err) {
     showError(err.message);
   }
 }
 
 async function sendReaction(reaction) {
+  likeBtn.disabled = dislikeBtn.disabled = true;
   try {
-    const token = await getAccessToken();
-    if (token) {
-      if (reaction === "like" || reaction === "dislike") {
-        const response = await fetch(`${API_BASE}/reaction/${commentId}`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({
-            reaction,
-          }),
-        });
-        if (!response.ok) {
-          const data = await response.json();
-          showError(data.message);
-          return;
-        }
-        showMessage("Feedback submitted successfully");
-      }
-    } else {
-      throw new Error("no token");
-    }
+    await api(`/reaction/${commentId}`, {
+      method: "POST",
+      body: JSON.stringify({ reaction }),
+    });
+    showMessage("Feedback submitted successfully");
   } catch (err) {
     showError(err.message);
+  } finally {
+    likeBtn.disabled = dislikeBtn.disabled = false;
   }
-}
-async function hasUserRatedComment() {
-  const token = await getAccessToken();
-
-  if (!token) throw new Error("No token available");
-
-  const response = await fetch(`${API_BASE}/hasUserRatedComment/${commentId}`, {
-    method: "GET",
-    headers: {
-      Authorization: `Bearer ${token}`,
-      "Content-Type": "application/json",
-    },
-  });
-
-  const data = await response.json();
-
-  if (!response.ok) {
-    throw new Error(data.message || `Request failed: ${response.status}`);
-  }
-
-  if (typeof data.message !== "boolean") {
-    throw new Error(`Unexpected response format: ${JSON.stringify(data)}`);
-  }
-
-  return data.message;
-}
-
-// UI state management
-function showLoading() {
-  loading.style.display = "block";
-  error.style.display = "none";
-  app.style.display = "none";
-}
-
-function hideLoading() {
-  loading.style.display = "none";
-  app.style.display = "flex";
 }
 
 function showError(message) {
@@ -199,18 +124,19 @@ function hideError() {
 function showLoggedIn() {
   loggedOutSection.style.display = "none";
   loggedInSection.style.display = "flex";
+  submissionMsg.style.display = "none";
+  likeBtn.style.display = dislikeBtn.style.display = "block";
 }
 
 function showLoggedOut() {
   loggedInSection.style.display = "none";
   loggedOutSection.style.display = "flex";
 }
+
 function showMessage(message) {
-  loggedOutSection.style.display = "none";
-  loggedInSection.style.display = "flex";
+  showLoggedIn();
   submissionMsg.style.display = "flex";
-  likeBtn.style.display = "none";
-  dislikeBtn.style.display = "none";
+  likeBtn.style.display = dislikeBtn.style.display = "none";
   submissionMsg.textContent = message;
 }
 
@@ -220,6 +146,5 @@ logoutBtn.addEventListener("click", logout);
 likeBtn.addEventListener("click", () => sendReaction("like"));
 dislikeBtn.addEventListener("click", () => sendReaction("dislike"));
 closeBtn.addEventListener("click", hideError);
-
 // Initialize the app
-initAuth0();
+initAuth();

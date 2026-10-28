@@ -218,6 +218,8 @@ npm run migrate up
 
 Migrations create the application tables in the database initialized by PostgreSQL. The backend checks its database connection before listening and exits if it cannot connect.
 
+Run pending migrations before starting updated application code. Prompt deduplication uses a unique index on `md5(prompt)` so long prompts can be stored without exceeding PostgreSQL's B-tree key-size limit. The full text is retained, and the application checks text equality before reusing an ID. Rolling back the hash-index migration can fail once long prompts have been stored, because it restores the original full-text unique constraint; a failed rollback leaves the data intact.
+
 **Start the backend in watch mode:**
 
 ```bash

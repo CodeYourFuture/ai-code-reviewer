@@ -25,6 +25,7 @@ const requestParams: Partial<ChatGenerationParams> = {
 const mockFeedback: AiResponse = {
   feedback_points: [
     {
+      feedback_type: "code quality",
       file_name: "file.ts",
       topic: "naming",
       point: "description",

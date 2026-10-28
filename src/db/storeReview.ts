@@ -17,11 +17,15 @@ export const getOrCreatePromptId = async (prompt: string): Promise<number> => {
   const query = `
     INSERT INTO prompts (prompt)
     VALUES ($1)
-    ON CONFLICT (prompt) DO UPDATE SET prompt = EXCLUDED.prompt
+    ON CONFLICT (md5(prompt)) DO UPDATE SET prompt = EXCLUDED.prompt
+    WHERE prompts.prompt = EXCLUDED.prompt
     RETURNING id
   `;
 
   const result = await pool.query(query, [prompt]);
+  if (!result.rows[0]) {
+    throw new Error("Prompt hash collision: refusing to reuse a different prompt's ID");
+  }
   return result.rows[0].id;
 };
 

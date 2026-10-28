@@ -6,14 +6,14 @@ export function prepareCodeForReview(params: { files: PRFile[] }) {
 
   const filesText = files
     .map((f) => {
-      if (typeof f.patch === "string") {
-        f.patch = clearDefaultComments(f.patch);
-        f.patch = addLineNumbers(f.patch);
-      }
+      const patch =
+        typeof f.patch === "string"
+          ? addLineNumbers(clearDefaultComments(f.patch))
+          : "NO_PATCH_AVAILABLE";
 
       return `### File: ${f.filename} (${f.status})
 \`\`\`diff
-${f.patch ?? "NO_PATCH_AVAILABLE"}
+${patch}
 \`\`\`
 `;
     })

@@ -21,7 +21,7 @@ export const FeedbackPointSchema = z
     point: z
       .string()
       .describe(
-        `A detailed explanation of the issue you are giving feedback on. Explain in which case that issue becomes a problem, and how bad that problem will be. If you ask question to nudge trainee towards better practices, use a "teaching" style not a "telling" style (e.g. "I've noticed you have some duplicated code here - if you had to change one copy of it you'd need to remember to change the other - how could you avoid that?" rather than "You should extract a function here")`,
+        "A concise, student-facing explanation of an observed issue and its concrete consequence, normally two to four sentences. Include a focused question or suggestion when useful. Give repeated or very similar feedback only once, briefly identifying other observed locations where it applies. Do not invent hypothetical code or comments or provide a complete replacement implementation.",
       ),
     line_numbers: z
       .array(z.string())
@@ -45,7 +45,17 @@ export const FeedbackPointWithTopicSchema = FeedbackPointSchema.extend({
   topic: z.string(),
 });
 export const AiResponseSchema = z.object({
-  feedback_points: z.array(FeedbackPointWithTopicSchema),
+  feedback_points: z
+    .array(FeedbackPointWithTopicSchema.extend({
+      feedback_type: feedbackTypesSchema.describe(
+        "Use comments quality for existing comment issues, and code quality for all other issues.",
+      ),
+      line_numbers: FeedbackPointSchema.shape.line_numbers.min(1),
+    }))
+    .max(5)
+    .describe(
+      "At most five distinct findings across the entire PR; return an empty array when there are no useful, well-supported findings.",
+    ),
 });
 
 // Always create a TypeScript type from the schema using z.infer.

@@ -16,7 +16,12 @@ const NON_TEXT_FILE_CONTEXT_REASON =
 const UNAVAILABLE_FILE_CONTEXT_REASON =
   "Full-file context could not be retrieved from GitHub.";
 
-function decodeTextContent(content: unknown): string | undefined {
+type TextContentResult =
+  | { status: "text"; content: string }
+  | { status: "too-large" }
+  | { status: "non-text" };
+
+function decodeTextContent(content: unknown): TextContentResult {
   let bytes: Buffer;
   if (typeof content === "string") {
     bytes = Buffer.from(content, "utf8");
@@ -25,37 +30,49 @@ function decodeTextContent(content: unknown): string | undefined {
   } else if (ArrayBuffer.isView(content)) {
     bytes = Buffer.from(content.buffer, content.byteOffset, content.byteLength);
   } else {
-    return undefined;
+    return { status: "non-text" };
+  }
+
+  // Check the raw byte length before scanning or decoding the file. The response
+  // has already been downloaded, but this avoids additional large allocations.
+  if (bytes.byteLength > MAX_FULL_FILE_CONTEXT_BYTES) {
+    return { status: "too-large" };
   }
 
   // NUL bytes are a strong binary-file signal and are unusual in source text.
-  if (bytes.includes(0)) return undefined;
+  if (bytes.includes(0)) return { status: "non-text" };
 
   let text: string;
   try {
     text = new TextDecoder("utf-8", { fatal: true }).decode(bytes);
   } catch {
-    return undefined;
+    return { status: "non-text" };
   }
 
   // Text files can contain tabs and line breaks, but other ASCII control
   // characters commonly indicate that the decoded content is binary data.
-  const disallowedControlCharacters = [...text].filter((character) => {
+  const maximumAllowedControlCharacters = Math.max(1, text.length * 0.01);
+  let disallowedControlCharacters = 0;
+  for (const character of text) {
     const codePoint = character.codePointAt(0) ?? 0;
-    return (
+    const isDisallowed =
       // Allow tab (9), line feed (10), and carriage return (13).
       (codePoint < 32 && character !== "\n" && character !== "\r" && character !== "\t") ||
       // DEL and C1 controls are also uncommon in source and other text files.
-      (codePoint >= 127 && codePoint <= 159)
-    );
-  }).length;
+      (codePoint >= 127 && codePoint <= 159);
+
+    if (isDisallowed) {
+      disallowedControlCharacters++;
+      if (disallowedControlCharacters > maximumAllowedControlCharacters) {
+        return { status: "non-text" };
+      }
+    }
+  }
 
   // Permit an occasional control character, but classify the content as binary
   // when more than 1% of its characters are controls. Math.max avoids treating
   // one unusual character in a short file as enough evidence that it is binary.
-  return disallowedControlCharacters > Math.max(1, text.length * 0.01)
-    ? undefined
-    : text;
+  return { status: "text", content: text };
 }
 
 async function addFullTextContent(
@@ -80,14 +97,14 @@ async function addFullTextContent(
         headers: { accept: "application/vnd.github.raw+json" },
       },
     );
-    const fullContent = decodeTextContent(response.data);
-    if (fullContent === undefined) {
+    const textContent = decodeTextContent(response.data);
+    if (textContent.status === "non-text") {
       return {
         ...file,
         fullContentOmittedReason: NON_TEXT_FILE_CONTEXT_REASON,
       };
     }
-    if (Buffer.byteLength(fullContent, "utf8") > MAX_FULL_FILE_CONTEXT_BYTES) {
+    if (textContent.status === "too-large") {
       const reason = `Full-file context is not included because it exceeds the ${MAX_FULL_FILE_CONTEXT_BYTES}-byte per-file limit.`;
       console.warn(`Omitting full-file context for ${file.filename}: ${reason}`);
       return {
@@ -95,7 +112,7 @@ async function addFullTextContent(
         fullContentOmittedReason: reason,
       };
     }
-    return { ...file, fullContent };
+    return { ...file, fullContent: textContent.content };
   } catch (error) {
     console.warn(`Could not fetch full content for ${file.filename}`, error);
     return {

@@ -63,7 +63,7 @@ describe("getPRFiles", () => {
         if (route === "GET /repos/me/repo/pulls/123/files") {
           return Promise.resolve({ data: mockFiles });
         }
-        return Promise.resolve(fileContent(Buffer.from([0, 1, 2, 3])));
+        return Promise.resolve(fileContent(Buffer.from([1, 2, 3, 4])));
       }),
     } as any;
 
@@ -82,13 +82,13 @@ describe("getPRFiles", () => {
     expect(octokit.request).toHaveBeenCalledTimes(2);
   });
 
-  it("omits content that exceeds the per-file budget", async () => {
+  it("rejects oversized content before attempting UTF-8 decoding", async () => {
     const mockFiles = [{ filename: "large.txt", status: "modified" }];
     const octokit = {
       request: vi.fn().mockImplementation((route: string) => {
         if (route.endsWith("/files")) return Promise.resolve({ data: mockFiles });
         return Promise.resolve(
-          fileContent(Buffer.alloc(MAX_FULL_FILE_CONTEXT_BYTES + 1, "a")),
+          fileContent(Buffer.alloc(MAX_FULL_FILE_CONTEXT_BYTES + 1, 0xff)),
         );
       }),
     } as any;

@@ -26,9 +26,18 @@ const server = createApp({
 
 try {
   await assertDbConnection();
-  server.listen(env.PORT, () =>
-    console.log(`Server running on port ${env.PORT}`),
-  );
+  server.listen(env.PORT, () => {
+    console.log(`Server running on port ${env.PORT}`);
+    console.log(
+      "Reviewer configuration:",
+      JSON.stringify({
+        AI_MODEL: env.AI_MODEL,
+        AI_REASONING_EFFORT: env.AI_REASONING_EFFORT,
+        AI_MAX_COMPLETION_TOKENS: env.AI_MAX_COMPLETION_TOKENS,
+        MULTIPLE_REVIEWS_ALLOWED: env.MULTIPLE_REVIEWS_ALLOWED,
+      }),
+    );
+  });
 } catch (err) {
   console.error("Could not connect to PostgreSQL, aborting startup:", err);
   process.exit(1);

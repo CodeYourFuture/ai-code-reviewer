@@ -1,5 +1,5 @@
 import { OpenRouter } from "@openrouter/sdk";
-import { ChatGenerationParams, Message } from "@openrouter/sdk/models";
+import { ChatGenerationParams, Effort, Message } from "@openrouter/sdk/models";
 import { env } from "../../config/env.js";
 import {
   AiResponse,
@@ -20,13 +20,14 @@ import { removeAdditionalLineNumbersAndSymbols } from "../../validation/removeAd
 
 const openRouter = new OpenRouter({ apiKey: env.OPENROUTER_API_KEY });
 const FULL_FILE_PREVIEW_LINES = 5;
-export const MODEL = "openai/gpt-6-luna";
+export const MODEL = env.AI_MODEL;
 export const defaultChatParameters: Partial<ChatGenerationParams> = {
   temperature: 0,
   model: MODEL,
-  reasoning: { effort: "medium" },
+  // The provider supports "max", but this SDK version's Effort type lags behind.
+  reasoning: { effort: env.AI_REASONING_EFFORT as Effort },
   // One response now covers every category, with room for five findings and reasoning.
-  maxCompletionTokens: 25000,
+  maxCompletionTokens: env.AI_MAX_COMPLETION_TOKENS,
   responseFormat: {
     type: "json_schema",
     jsonSchema: getSchema,

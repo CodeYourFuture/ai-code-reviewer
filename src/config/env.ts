@@ -3,6 +3,7 @@ import fs from "node:fs";
 import * as z from "zod";
 import { accessSchema } from "./access.js";
 import { authSchema } from "../auth/config.js";
+import { reviewerConfigSchema } from "./reviewer.js";
 dotenv.config();
 
 const envSchema = z.object({
@@ -26,6 +27,7 @@ const envSchema = z.object({
 const parsed = envSchema
   .and(accessSchema)
   .and(authSchema)
+  .and(reviewerConfigSchema)
   .superRefine((config, ctx) => {
     if (
       config.NODE_ENV === "production" &&

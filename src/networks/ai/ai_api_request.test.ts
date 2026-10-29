@@ -11,7 +11,13 @@ import { codeReviewPrompt } from "./prompt.js";
 import { env } from "../../config/env.js";
 
 vi.mock("../../config/env.js", () => ({
-  env: { OPENROUTER_API_KEY: "test", NODE_ENV: "test" },
+  env: {
+    OPENROUTER_API_KEY: "test",
+    NODE_ENV: "test",
+    AI_MODEL: "test/model",
+    AI_REASONING_EFFORT: "high",
+    AI_MAX_COMPLETION_TOKENS: 25000,
+  },
 }));
 const { sendMock } = vi.hoisted(() => ({ sendMock: vi.fn() }));
 vi.mock("@openrouter/sdk", () => ({
@@ -59,7 +65,11 @@ describe("single-pass review", () => {
         role: "user",
         content: expect.stringMatching(/1\| \+new code[\s\S]*const game = true;/),
       },
-    ], expect.objectContaining({ maxCompletionTokens: 25000 }));
+    ], expect.objectContaining({
+      model: "test/model",
+      reasoning: { effort: "high" },
+      maxCompletionTokens: 25000,
+    }));
     expect(result.map((review) => review.feedback_points.length)).toEqual([1, 1]);
     expect(result[0].feedback_points[0].topic).toBe("clarity");
     expect(result.every((review) => review.prompt === codeReviewPrompt)).toBe(true);

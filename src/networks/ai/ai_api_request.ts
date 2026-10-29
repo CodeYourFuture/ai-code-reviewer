@@ -7,8 +7,11 @@ import {
   FEEDBACK_TYPES,
   ReviewWithPrompt,
 } from "../../types/aiResponse.js";
-import { PRFile } from "../../types/githubTypes.js";
-import { prepareCodeForReview } from "../../utils/prepareCodeForReview.js";
+import type { PRFileWithContent } from "../../types/githubTypes.js";
+import {
+  prepareCodeForReview,
+  preparePatchForReview,
+} from "../../utils/prepareCodeForReview.js";
 import { getSchema } from "../../utils/responseSchemas/getSchema.js";
 import { codeReviewPrompt } from "./prompt.js";
 import { askOpenRouterWithValidation } from "./retryWithValidation.js";
@@ -16,11 +19,12 @@ import { validateFeedbackPoints } from "../../validation/validateFeedbackPoints.
 import { removeAdditionalLineNumbersAndSymbols } from "../../validation/removeAdditionalLineNumbersAndSymbols.js";
 
 const openRouter = new OpenRouter({ apiKey: env.OPENROUTER_API_KEY });
+const FULL_FILE_PREVIEW_LINES = 5;
 export const MODEL = "openai/gpt-6-luna";
 export const defaultChatParameters: Partial<ChatGenerationParams> = {
   temperature: 0,
   model: MODEL,
-  reasoning: { effort: "low" },
+  reasoning: { effort: "medium" },
   // One response now covers every category, with room for five findings and reasoning.
   maxCompletionTokens: 6000,
   responseFormat: {
@@ -52,7 +56,32 @@ export function validateAiResponse(response: string): AiResponse {
   return AiResponseSchema.parse(JSON.parse(response));
 }
 
-export async function runAiReview(files: PRFile[]): Promise<ReviewWithPrompt[]> {
+function logReviewInput(files: PRFileWithContent[]) {
+  console.log("===== Review diffs =====");
+  for (const file of files) {
+    console.log(`--- ${file.filename} (${file.status}) ---`);
+    console.log(preparePatchForReview(file.patch));
+  }
+
+  console.log(
+    `===== Full-file context previews (first ${FULL_FILE_PREVIEW_LINES} lines) =====`,
+  );
+  for (const file of files) {
+    if (typeof file.fullContent !== "string") continue;
+
+    const preview = file.fullContent
+      .split(/\r\n|\n|\r/)
+      .slice(0, FULL_FILE_PREVIEW_LINES)
+      .join("\n");
+    console.log(`--- ${file.filename} ---`);
+    console.log(preview || "(empty file)");
+  }
+}
+
+export async function runAiReview(
+  files: PRFileWithContent[],
+): Promise<ReviewWithPrompt[]> {
+  if (env.NODE_ENV !== "production") logReviewInput(files);
   const messages: Message[] = [
     { role: "system", content: codeReviewPrompt },
     { role: "user", content: prepareCodeForReview({ files }) },

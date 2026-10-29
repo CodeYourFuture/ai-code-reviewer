@@ -55,7 +55,13 @@ export async function handleLabeled(
 
   if (label?.toLocaleLowerCase() === "needs review") {
     try {
-      const files = await getPRFiles(owner, repo, pullNumber, octokit);
+      const files = await getPRFiles(
+        owner,
+        repo,
+        pullNumber,
+        octokit,
+        commitId,
+      );
       const aiReview: ReviewWithPrompt[] = await runAiReview(files);
       const aiReviewWithId: AiResponseWithId[] = await storeReview(
         aiReview,

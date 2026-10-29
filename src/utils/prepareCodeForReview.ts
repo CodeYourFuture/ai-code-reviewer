@@ -1,20 +1,39 @@
-import type { PRFile } from "../types/githubTypes.js";
+import type { PRFileWithContent } from "../types/githubTypes.js";
 import addLineNumbers from "./addLineNumbers.js";
 
-export function prepareCodeForReview(params: { files: PRFile[] }) {
+export function preparePatchForReview(patch: string | undefined) {
+  return typeof patch === "string"
+    ? addLineNumbers(clearDefaultComments(patch))
+    : "NO_PATCH_AVAILABLE";
+}
+
+export function prepareCodeForReview(params: { files: PRFileWithContent[] }) {
   const { files } = params;
 
   const filesText = files
     .map((f) => {
-      const patch =
-        typeof f.patch === "string"
-          ? addLineNumbers(clearDefaultComments(f.patch))
-          : "NO_PATCH_AVAILABLE";
+      const patch = preparePatchForReview(f.patch);
+
+      const fullFileContext =
+        typeof f.fullContent === "string"
+          ? `
+Full file at PR head (supporting context only; not a feedback target):
+<full-file-context filename="${f.filename}">
+${f.fullContent}
+</full-file-context>
+`
+          : f.fullContentOmittedReason
+            ? `
+Full-file context status: ${f.fullContentOmittedReason}
+`
+            : "";
 
       return `### File: ${f.filename} (${f.status})
+Changed lines (the only valid feedback targets):
 \`\`\`diff
 ${patch}
 \`\`\`
+${fullFileContext}
 `;
     })
     .join("\n");

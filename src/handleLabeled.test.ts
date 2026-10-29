@@ -43,6 +43,8 @@ vi.mock("./networks/postPrComment.js", () => ({
 describe("handleLabeled", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(getPRFiles).mockResolvedValue([]);
+    vi.mocked(runAiReview).mockResolvedValue([]);
   });
 
   it("runs AI review workflow when 'needs review' label is applied", async () => {
@@ -55,6 +57,7 @@ describe("handleLabeled", () => {
       "hello-world",
       42,
       expect.anything(),
+      "abc123",
     );
     expect(runAiReview).toHaveBeenCalled();
   });

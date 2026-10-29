@@ -1,11 +1,14 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { AiResponse } from "../../types/aiResponse.js";
-import type { PRFile } from "../../types/githubTypes.js";
+import type { PRFileWithContent } from "../../types/githubTypes.js";
 import { runAiReview, validateAiResponse } from "./ai_api_request.js";
 import { askOpenRouterWithValidation } from "./retryWithValidation.js";
 import { codeReviewPrompt } from "./prompt.js";
+import { env } from "../../config/env.js";
 
-vi.mock("../../config/env.js", () => ({ env: { OPENROUTER_API_KEY: "test" } }));
+vi.mock("../../config/env.js", () => ({
+  env: { OPENROUTER_API_KEY: "test", NODE_ENV: "test" },
+}));
 vi.mock("@openrouter/sdk", () => ({ OpenRouter: class {} }));
 vi.mock("./retryWithValidation.js", () => ({ askOpenRouterWithValidation: vi.fn() }));
 
@@ -18,11 +21,19 @@ const point: AiResponse["feedback_points"][number] = {
   severity: 2,
 };
 const patch = "@@ -1,2 +1,2 @@\n-old code\n+new code\n // context";
-const makeFiles = () => [{ filename: "game.js", status: "modified", patch } as PRFile];
+const makeFiles = () => [
+  {
+    filename: "game.js",
+    status: "modified",
+    patch,
+    fullContent: "const game = true;\n",
+  } as PRFileWithContent,
+];
 
 describe("single-pass review", () => {
   beforeEach(() => {
     vi.resetAllMocks();
+    (env as { NODE_ENV: string }).NODE_ENV = "test";
     vi.spyOn(console, "log").mockImplementation(() => {});
   });
 
@@ -35,12 +46,48 @@ describe("single-pass review", () => {
     expect(askOpenRouterWithValidation).toHaveBeenCalledTimes(1);
     expect(askOpenRouterWithValidation).toHaveBeenCalledWith([
       { role: "system", content: codeReviewPrompt },
-      { role: "user", content: expect.stringContaining("1| +new code") },
+      {
+        role: "user",
+        content: expect.stringMatching(/1\| \+new code[\s\S]*const game = true;/),
+      },
     ], expect.objectContaining({ maxCompletionTokens: 6000 }));
     expect(result.map((review) => review.feedback_points.length)).toEqual([1, 1]);
     expect(result[0].feedback_points[0].topic).toBe("clarity");
     expect(result.every((review) => review.prompt === codeReviewPrompt)).toBe(true);
     expect(files[0].patch).toBe(patch);
+  });
+
+  it("logs diffs and only the first five lines of full-file context", async () => {
+    vi.mocked(askOpenRouterWithValidation).mockResolvedValue({ feedback_points: [] });
+    const files = makeFiles();
+    files[0].fullContent = "one\ntwo\nthree\nfour\nfive\nsix\n";
+
+    await runAiReview(files);
+
+    const loggedText = vi
+      .mocked(console.log)
+      .mock.calls.flat()
+      .join("\n");
+    expect(loggedText).toContain("===== Review diffs =====");
+    expect(loggedText).toContain("1| +new code");
+    expect(console.log).toHaveBeenCalledWith("one\ntwo\nthree\nfour\nfive");
+    expect(console.log).not.toHaveBeenCalledWith(
+      expect.stringContaining("five\nsix"),
+    );
+  });
+
+  it("does not log review input in production", async () => {
+    vi.mocked(askOpenRouterWithValidation).mockResolvedValue({ feedback_points: [] });
+    (env as { NODE_ENV: string }).NODE_ENV = "production";
+
+    await runAiReview(makeFiles());
+
+    const loggedText = vi
+      .mocked(console.log)
+      .mock.calls.flat()
+      .join("\n");
+    expect(loggedText).not.toContain("===== Review diffs =====");
+    expect(loggedText).not.toContain("===== Full-file context previews");
   });
 
   it("allows an empty review", async () => {

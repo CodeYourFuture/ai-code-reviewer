@@ -8,6 +8,13 @@ export type PullRequestFilesResponse =
 
 export type PRFile = PullRequestFilesResponse["data"][number];
 
+export type PRFileWithContent = PRFile & {
+  /** Full UTF-8 text at the PR head, when GitHub can return it. */
+  fullContent?: string;
+  /** Why full-file context was intentionally not included in the LLM input. */
+  fullContentOmittedReason?: string;
+};
+
 //type for single comments on diff
 export type CreateReviewCommentParams =
   RestEndpointMethodTypes["pulls"]["createReviewComment"]["parameters"];

@@ -57,7 +57,7 @@ describe("validateFeedbackPoints", () => {
     expect(result[0].feedback_points).toHaveLength(0);
   });
 
-  test("filters out point with line number exceeding max line", () => {
+  test("filters out a line that was not added", () => {
     const files = [makeFile("foo.ts", patchFiveLines)];
     const responses = [makeResponse([makePoint("foo.ts", ["6"])])];
     const result = validateFeedbackPoints(responses, files);
@@ -71,7 +71,7 @@ describe("validateFeedbackPoints", () => {
     expect(result[0].feedback_points).toHaveLength(0);
   });
 
-  test("accepts point with line number exactly at max line", () => {
+  test("accepts an added line at the end of a hunk", () => {
     const files = [makeFile("foo.ts", patchFiveLines)];
     const responses = [makeResponse([makePoint("foo.ts", ["5"])])];
     const result = validateFeedbackPoints(responses, files);
@@ -85,7 +85,7 @@ describe("validateFeedbackPoints", () => {
     expect(result[0].feedback_points).toHaveLength(1);
   });
 
-  test("filters out point when any line in a range exceeds max", () => {
+  test("filters out a range containing a line that was not added", () => {
     const files = [makeFile("foo.ts", patchFiveLines)];
     const responses = [makeResponse([makePoint("foo.ts", ["4-6"])])];
     const result = validateFeedbackPoints(responses, files);
@@ -99,18 +99,18 @@ describe("validateFeedbackPoints", () => {
     expect(result[0].feedback_points).toHaveLength(1);
   });
 
-  test("accepts point with comma-separated lines all within bounds", () => {
+  test("filters out comma-separated line numbers", () => {
     const files = [makeFile("foo.ts", patchFiveLines)];
     const responses = [makeResponse([makePoint("foo.ts", ["1,3,5"])])];
     const result = validateFeedbackPoints(responses, files);
-    expect(result[0].feedback_points).toHaveLength(1);
+    expect(result[0].feedback_points).toHaveLength(0);
   });
 
-  test("accepts point with mixed range and individual lines all valid", () => {
+  test("filters out mixed ranges and individual lines", () => {
     const files = [makeFile("foo.ts", patchFiveLines)];
     const responses = [makeResponse([makePoint("foo.ts", ["1,3-5"])])];
     const result = validateFeedbackPoints(responses, files);
-    expect(result[0].feedback_points).toHaveLength(1);
+    expect(result[0].feedback_points).toHaveLength(0);
   });
 
   test("filters out all points when file has no patch (maxLine = 0)", () => {
@@ -184,12 +184,12 @@ describe("validateFeedbackPoints", () => {
     expect(result[0].feedback_points).toHaveLength(2);
   });
 
-  test("removes only lines starting with - from line count (deleted lines not counted)", () => {
+  test("accepts added lines but rejects unchanged context lines", () => {
     // Patch: starts at new line 10, has 1 deleted and 2 added/context lines
     // @@ -10,1 +10,2 @@
     // -old line (deleted, not counted)
     // +new line (counted → line 10)
-    //  context  (counted → line 11)
+    //  context  (right-side line 11, but not added)
     const patchWithDeletion =
       "@@ -10,1 +10,2 @@\n-old line\n+new line\n context";
     const files = [makeFile("foo.ts", patchWithDeletion)];
@@ -201,7 +201,28 @@ describe("validateFeedbackPoints", () => {
       ]),
     ];
     const result = validateFeedbackPoints(responses, files);
-    expect(result[0].feedback_points).toHaveLength(2);
+    expect(result[0].feedback_points).toHaveLength(1);
+    expect(result[0].feedback_points[0].line_numbers).toEqual(["10"]);
+  });
+
+  test("rejects a line between hunks even when it is below the highest line", () => {
+    const patchWithGap =
+      "@@ -1 +1 @@\n+first hunk\n@@ -20 +20 @@\n+second hunk";
+    const files = [makeFile("foo.ts", patchWithGap)];
+    const responses = [
+      makeResponse([
+        makePoint("foo.ts", ["1"]),
+        makePoint("foo.ts", ["10"]),
+        makePoint("foo.ts", ["20"]),
+      ]),
+    ];
+
+    const result = validateFeedbackPoints(responses, files);
+
+    expect(result[0].feedback_points.map((point) => point.line_numbers)).toEqual([
+      ["1"],
+      ["20"],
+    ]);
   });
 
   test("handles multi-hunk patches and uses the highest max line", () => {

@@ -26,7 +26,7 @@ export const defaultChatParameters: Partial<ChatGenerationParams> = {
   model: MODEL,
   reasoning: { effort: "medium" },
   // One response now covers every category, with room for five findings and reasoning.
-  maxCompletionTokens: 6000,
+  maxCompletionTokens: 25000,
   responseFormat: {
     type: "json_schema",
     jsonSchema: getSchema,
@@ -42,6 +42,32 @@ export async function aiCall(
     messages,
     stream: false,
   });
+  const finishReason = completion.choices[0]?.finishReason ?? null;
+  const usage = completion.usage;
+  console.log("===== Review completion metadata =====");
+  console.log(
+    JSON.stringify({
+      model: completion.model,
+      finishReason,
+      usage: usage
+        ? {
+            promptTokens: usage.promptTokens,
+            cachedPromptTokens:
+              usage.promptTokensDetails?.cachedTokens ?? null,
+            completionTokens: usage.completionTokens,
+            reasoningTokens:
+              usage.completionTokensDetails?.reasoningTokens ?? null,
+            totalTokens: usage.totalTokens,
+          }
+        : null,
+    }),
+  );
+  if (finishReason === "length") {
+    console.warn(
+      `OpenRouter stopped the review because it reached the ${requestParams.maxCompletionTokens ?? "configured"}-token completion limit.`,
+    );
+  }
+
   const res = completion.choices[0]?.message?.content;
   if (!res) throw new Error("No content returned from OpenRouter");
   if (typeof res !== "string") {

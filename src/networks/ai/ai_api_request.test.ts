@@ -1,7 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { AiResponse } from "../../types/aiResponse.js";
 import type { PRFileWithContent } from "../../types/githubTypes.js";
-import { runAiReview, validateAiResponse } from "./ai_api_request.js";
+import {
+  aiCall,
+  runAiReview,
+  validateAiResponse,
+} from "./ai_api_request.js";
 import { askOpenRouterWithValidation } from "./retryWithValidation.js";
 import { codeReviewPrompt } from "./prompt.js";
 import { env } from "../../config/env.js";
@@ -9,7 +13,12 @@ import { env } from "../../config/env.js";
 vi.mock("../../config/env.js", () => ({
   env: { OPENROUTER_API_KEY: "test", NODE_ENV: "test" },
 }));
-vi.mock("@openrouter/sdk", () => ({ OpenRouter: class {} }));
+const { sendMock } = vi.hoisted(() => ({ sendMock: vi.fn() }));
+vi.mock("@openrouter/sdk", () => ({
+  OpenRouter: class {
+    chat = { send: sendMock };
+  },
+}));
 vi.mock("./retryWithValidation.js", () => ({ askOpenRouterWithValidation: vi.fn() }));
 
 const point: AiResponse["feedback_points"][number] = {
@@ -50,7 +59,7 @@ describe("single-pass review", () => {
         role: "user",
         content: expect.stringMatching(/1\| \+new code[\s\S]*const game = true;/),
       },
-    ], expect.objectContaining({ maxCompletionTokens: 6000 }));
+    ], expect.objectContaining({ maxCompletionTokens: 25000 }));
     expect(result.map((review) => review.feedback_points.length)).toEqual([1, 1]);
     expect(result[0].feedback_points[0].topic).toBe("clarity");
     expect(result.every((review) => review.prompt === codeReviewPrompt)).toBe(true);
@@ -88,6 +97,60 @@ describe("single-pass review", () => {
       .join("\n");
     expect(loggedText).not.toContain("===== Review diffs =====");
     expect(loggedText).not.toContain("===== Full-file context previews");
+  });
+
+  it("logs completion usage and finish reason", async () => {
+    sendMock.mockResolvedValue({
+      model: "openai/gpt-6-luna",
+      choices: [
+        {
+          finishReason: "stop",
+          message: { content: '{"feedback_points":[]}' },
+        },
+      ],
+      usage: {
+        promptTokens: 1200,
+        completionTokens: 800,
+        totalTokens: 2000,
+        promptTokensDetails: { cachedTokens: 300 },
+        completionTokensDetails: { reasoningTokens: 600 },
+      },
+    });
+
+    await aiCall([], { maxCompletionTokens: 25000 });
+
+    expect(console.log).toHaveBeenCalledWith(
+      JSON.stringify({
+        model: "openai/gpt-6-luna",
+        finishReason: "stop",
+        usage: {
+          promptTokens: 1200,
+          cachedPromptTokens: 300,
+          completionTokens: 800,
+          reasoningTokens: 600,
+          totalTokens: 2000,
+        },
+      }),
+    );
+  });
+
+  it("warns when the completion token limit is reached", async () => {
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    sendMock.mockResolvedValue({
+      model: "openai/gpt-6-luna",
+      choices: [
+        {
+          finishReason: "length",
+          message: { content: '{"feedback_points":[]}' },
+        },
+      ],
+    });
+
+    await aiCall([], { maxCompletionTokens: 25000 });
+
+    expect(console.warn).toHaveBeenCalledWith(
+      expect.stringContaining("25000-token completion limit"),
+    );
   });
 
   it("allows an empty review", async () => {

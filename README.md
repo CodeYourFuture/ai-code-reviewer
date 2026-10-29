@@ -75,7 +75,7 @@ In development, only usernames in the comma-separated allowlist may trigger revi
 
 In production, set `NODE_ENV="production"`, leave `DEV_GITHUB_USER_ALLOWLIST` empty, and set `GITHUB_MEMBERSHIP_ORG` to the organization whose members may use the app. Install the app on that organization with organization **Members: read-only** permission, in addition to the repository permissions above. Production initializes the organization client at startup; if the installation lookup fails, the backend fails to start. Development skips that initialization and uses the allowlist. Production review events check membership using the event's installation client, which must have access to the configured organization's membership.
 
-An omitted `NODE_ENV` defaults to `production`; unsupported values fail startup validation. `test` uses the development allowlist policy. A nonempty development allowlist is rejected in production. Production also enables the previous-review check; development allows repeated reviews.
+An omitted `NODE_ENV` defaults to `production`; unsupported values fail startup validation. `test` uses the development allowlist policy. A nonempty development allowlist is rejected in production. Whether a PR can receive repeated AI reviews is configured independently with `MULTIPLE_REVIEWS_ALLOWED`.
 
 After starting the backend and Smee client as described below, manually add **Needs Review** to the test PR to trigger a review. Opening a PR or pushing commits alone does not trigger one. Bot-generated label events are ignored. Reviews send PR diffs to OpenRouter and consume API credits.
 
@@ -143,6 +143,17 @@ To get started:
 - Get your API key
 - Add your key to the `OPENROUTER_API_KEY` env var
 
+The reviewer behavior can be configured with these optional variables:
+
+| Variable | Default | Purpose |
+| --- | --- | --- |
+| `AI_MODEL` | `openai/gpt-6-luna` | OpenRouter model identifier |
+| `AI_REASONING_EFFORT` | `medium` | Model reasoning effort (`none`, `minimal`, `low`, `medium`, `high`, `xhigh`, or `max`) |
+| `AI_MAX_COMPLETION_TOKENS` | `25000` | Maximum generated tokens, including reasoning tokens |
+| `MULTIPLE_REVIEWS_ALLOWED` | `false` | Whether the bot may review the same PR more than once |
+
+`MULTIPLE_REVIEWS_ALLOWED` defaults to `false`, retaining the one-review-per-PR behavior. Set it to `true` to permit repeated reviews. When it is false, the reviewer checks the PR timeline for earlier activity by the reviewer bot before starting another review.
+
 ### Environment Setup
 
 Create a `.env` file in the project root with these values:
@@ -153,6 +164,10 @@ WEBHOOK_SECRET=<your-webhook-secret>
 GITHUB_PRIVATE_KEY_PATH=<path-to-your-private-key-file>
 WEBHOOK_PROXY_URL="https://smee.io/<your-channel>"
 OPENROUTER_API_KEY="YOUR_KEY"
+AI_MODEL="openai/gpt-6-luna"
+AI_REASONING_EFFORT="medium"
+AI_MAX_COMPLETION_TOKENS=25000
+MULTIPLE_REVIEWS_ALLOWED=true
 DATABASE_USER="ai_reviewer_dev"
 DATABASE_PASSWORD="<replace-with-generated-password>"
 DATABASE_NAME="ai_reviewer_dev"

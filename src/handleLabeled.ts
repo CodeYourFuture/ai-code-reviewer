@@ -15,8 +15,11 @@ import {
 } from "./networks/githubApi/handleLabels.js";
 import { postPRComment } from "./networks/githubApi/postPrComment.js";
 
-const messageForReviewedPrs =
-  "The CYF AI review has left comments. It will only review a PR one time. When you have addressed these comments, please request review again and a volunteer will take a look.";
+function messageForReviewedPr() {
+  return env.MULTIPLE_REVIEWS_ALLOWED
+    ? "The CYF AI review has left comments. When you have addressed these comments, you can request another AI review or ask a volunteer to take a look."
+    : "The CYF AI review has left comments. It will only review a PR one time. When you have addressed these comments, please request review again and a volunteer will take a look.";
+}
 
 export async function handleLabeled(
   event: EmitterWebhookEvent<"pull_request.labeled"> & { octokit: Octokit },
@@ -46,7 +49,7 @@ export async function handleLabeled(
   }
 
   if (
-    env.NODE_ENV === "production" &&
+    !env.MULTIPLE_REVIEWS_ALLOWED &&
     (await haveCommentedAlready(owner, repo, pullNumber, octokit))
   ) {
     console.log("This reviewer only review prs once");
@@ -82,7 +85,7 @@ export async function handleLabeled(
         owner,
         repo,
         pullNumber,
-        body: messageForReviewedPrs,
+        body: messageForReviewedPr(),
         octokit,
       });
     } catch (error) {

@@ -150,9 +150,9 @@ The reviewer behavior can be configured with these optional variables:
 | `AI_MODEL` | `openai/gpt-6-luna` | OpenRouter model identifier |
 | `AI_REASONING_EFFORT` | `medium` | Model reasoning effort (`none`, `minimal`, `low`, `medium`, `high`, `xhigh`, or `max`) |
 | `AI_MAX_COMPLETION_TOKENS` | `25000` | Maximum generated tokens, including reasoning tokens |
-| `MULTIPLE_REVIEWS_ALLOWED` | `true` | Whether the bot may review the same PR more than once |
+| `MULTIPLE_REVIEWS_ALLOWED` | `false` | Whether the bot may review the same PR more than once |
 
-Set `MULTIPLE_REVIEWS_ALLOWED=false` to retain the one-review-per-PR behavior. When it is false, the reviewer checks the PR timeline for earlier activity by the reviewer bot before starting another review.
+`MULTIPLE_REVIEWS_ALLOWED` defaults to `false`, retaining the one-review-per-PR behavior. Set it to `true` to permit repeated reviews. When it is false, the reviewer checks the PR timeline for earlier activity by the reviewer bot before starting another review.
 
 ### Environment Setup
 

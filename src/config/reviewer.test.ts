@@ -7,7 +7,7 @@ describe("reviewer configuration", () => {
       AI_MODEL: "openai/gpt-6-luna",
       AI_REASONING_EFFORT: "medium",
       AI_MAX_COMPLETION_TOKENS: 25000,
-      MULTIPLE_REVIEWS_ALLOWED: true,
+      MULTIPLE_REVIEWS_ALLOWED: false,
     });
   });
 

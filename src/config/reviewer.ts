@@ -11,7 +11,7 @@ export const reviewerConfigSchema = z.object({
     .enum(["none", "minimal", "low", "medium", "high", "xhigh", "max"])
     .default("medium"),
   AI_MAX_COMPLETION_TOKENS: z.coerce.number().int().positive().default(25000),
-  MULTIPLE_REVIEWS_ALLOWED: booleanFromEnvironment.default(true),
+  MULTIPLE_REVIEWS_ALLOWED: booleanFromEnvironment.default(false),
 });
 
 export type ReviewerConfig = z.infer<typeof reviewerConfigSchema>;

@@ -1,8 +1,9 @@
 import * as z from "zod";
-import { AiResponseSchema } from "../../types/aiResponse.js";
 
-export const getSchema = {
-  name: "feedback",
-  strict: true,
-  schema: z.toJSONSchema(AiResponseSchema),
-};
+export function getSchema(responseSchema: z.ZodType) {
+  return {
+    name: "feedback",
+    strict: true,
+    schema: z.toJSONSchema(responseSchema),
+  };
+}

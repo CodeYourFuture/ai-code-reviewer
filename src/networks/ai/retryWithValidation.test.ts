@@ -1,7 +1,10 @@
 import type { ChatGenerationParams, Message } from "@openrouter/sdk/models";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { z } from "zod";
-import { AiResponseSchema, type AiResponse } from "../../types/aiResponse.js";
+import {
+  createAiResponseSchema,
+  type AiResponse,
+} from "../../types/aiResponse.js";
 import { aiCall, validateAiResponse } from "./ai_api_request.js";
 import { askOpenRouterWithValidation } from "./retryWithValidation.js";
 
@@ -37,7 +40,7 @@ const mockFeedback: AiResponse = {
 
 // A real ZodError, because askOpenRouterWithValidation only retries on those.
 function schemaErrorFor(value: unknown): z.ZodError {
-  const result = AiResponseSchema.safeParse(value);
+  const result = createAiResponseSchema(5).safeParse(value);
   if (result.success) {
     throw new Error("test setup: expected the schema to reject this value");
   }

@@ -11,6 +11,7 @@ export const reviewerConfigSchema = z.object({
     .enum(["none", "minimal", "low", "medium", "high", "xhigh", "max"])
     .default("medium"),
   AI_MAX_COMPLETION_TOKENS: z.coerce.number().int().positive().default(25000),
+  AI_MAX_FEEDBACK_POINTS: z.coerce.number().int().positive().default(5),
   MULTIPLE_REVIEWS_ALLOWED: booleanFromEnvironment.default(false),
 });
 

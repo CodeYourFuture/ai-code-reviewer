@@ -7,6 +7,7 @@ describe("reviewer configuration", () => {
       AI_MODEL: "openai/gpt-6-luna",
       AI_REASONING_EFFORT: "medium",
       AI_MAX_COMPLETION_TOKENS: 25000,
+      AI_MAX_FEEDBACK_POINTS: 5,
       MULTIPLE_REVIEWS_ALLOWED: false,
     });
   });
@@ -17,12 +18,14 @@ describe("reviewer configuration", () => {
         AI_MODEL: "openai/gpt-6-sol",
         AI_REASONING_EFFORT: "high",
         AI_MAX_COMPLETION_TOKENS: "32000",
+        AI_MAX_FEEDBACK_POINTS: "8",
         MULTIPLE_REVIEWS_ALLOWED: "false",
       }),
     ).toEqual({
       AI_MODEL: "openai/gpt-6-sol",
       AI_REASONING_EFFORT: "high",
       AI_MAX_COMPLETION_TOKENS: 32000,
+      AI_MAX_FEEDBACK_POINTS: 8,
       MULTIPLE_REVIEWS_ALLOWED: false,
     });
   });
@@ -33,6 +36,9 @@ describe("reviewer configuration", () => {
     ).toBe(false);
     expect(
       reviewerConfigSchema.safeParse({ AI_MAX_COMPLETION_TOKENS: 0 }).success,
+    ).toBe(false);
+    expect(
+      reviewerConfigSchema.safeParse({ AI_MAX_FEEDBACK_POINTS: 0 }).success,
     ).toBe(false);
     expect(
       reviewerConfigSchema.safeParse({ MULTIPLE_REVIEWS_ALLOWED: "yes" }).success,

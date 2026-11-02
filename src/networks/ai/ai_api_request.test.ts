@@ -1,13 +1,16 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { AiResponse } from "../../types/aiResponse.js";
+import {
+  createAiResponseSchema,
+  type AiResponse,
+} from "../../types/aiResponse.js";
 import type { PRFileWithContent } from "../../types/githubTypes.js";
 import {
   aiCall,
+  codeReviewPrompt,
   runAiReview,
   validateAiResponse,
 } from "./ai_api_request.js";
 import { askOpenRouterWithValidation } from "./retryWithValidation.js";
-import { codeReviewPrompt } from "./prompt.js";
 import { env } from "../../config/env.js";
 
 vi.mock("../../config/env.js", () => ({
@@ -17,6 +20,7 @@ vi.mock("../../config/env.js", () => ({
     AI_MODEL: "test/model",
     AI_REASONING_EFFORT: "high",
     AI_MAX_COMPLETION_TOKENS: 25000,
+    AI_MAX_FEEDBACK_POINTS: 5,
   },
 }));
 const { sendMock } = vi.hoisted(() => ({ sendMock: vi.fn() }));
@@ -173,12 +177,22 @@ describe("single-pass review", () => {
     await expect(runAiReview(makeFiles())).rejects.toThrow("provider unavailable");
   });
 
-  it("validates a global maximum of five findings across both types", () => {
+  it("validates the configured maximum number of findings across both types", () => {
     const points = Array.from({ length: 5 }, () => ({ ...point }));
     expect(validateAiResponse(JSON.stringify({ feedback_points: points })).feedback_points).toHaveLength(5);
     expect(() => validateAiResponse(JSON.stringify({ feedback_points: [...points, {
       ...point, feedback_type: "comments quality",
     }] }))).toThrow();
+  });
+
+  it("builds response schemas with a supplied findings limit", () => {
+    const schema = createAiResponseSchema(2);
+    expect(
+      schema.parse({ feedback_points: [point, point] }).feedback_points,
+    ).toHaveLength(2);
+    expect(() =>
+      schema.parse({ feedback_points: [point, point, point] }),
+    ).toThrow();
   });
 
   it("rejects findings without an anchor or valid feedback type", () => {

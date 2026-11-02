@@ -44,22 +44,25 @@ export const FeedbackPointSchema = z
 export const FeedbackPointWithTopicSchema = FeedbackPointSchema.extend({
   topic: z.string(),
 });
-export const AiResponseSchema = z.object({
-  feedback_points: z
-    .array(FeedbackPointWithTopicSchema.extend({
-      feedback_type: feedbackTypesSchema.describe(
-        "Use comments quality for existing comment issues, and code quality for all other issues.",
+export const createAiResponseSchema = (maxFeedbackPoints: number) =>
+  z.object({
+    feedback_points: z
+      .array(
+        FeedbackPointWithTopicSchema.extend({
+          feedback_type: feedbackTypesSchema.describe(
+            "Use comments quality for existing comment issues, and code quality for all other issues.",
+          ),
+          line_numbers: FeedbackPointSchema.shape.line_numbers.min(1),
+        }),
+      )
+      .max(maxFeedbackPoints)
+      .describe(
+        `At most ${maxFeedbackPoints} distinct findings across the entire PR; return an empty array when there are no useful, well-supported findings.`,
       ),
-      line_numbers: FeedbackPointSchema.shape.line_numbers.min(1),
-    }))
-    .max(5)
-    .describe(
-      "At most five distinct findings across the entire PR; return an empty array when there are no useful, well-supported findings.",
-    ),
-});
+  });
 
 // Always create a TypeScript type from the schema using z.infer.
-export type AiResponse = z.infer<typeof AiResponseSchema>;
+export type AiResponse = z.infer<ReturnType<typeof createAiResponseSchema>>;
 export type FeedbackPoint = z.infer<typeof FeedbackPointSchema>;
 
 export const FeedbackPointSchemaWithId = FeedbackPointSchema.extend({

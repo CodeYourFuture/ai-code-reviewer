@@ -3,7 +3,7 @@ import { ChatGenerationParams, Effort, Message } from "@openrouter/sdk/models";
 import { env } from "../../config/env.js";
 import {
   AiResponse,
-  AiResponseSchema,
+  createAiResponseSchema,
   FEEDBACK_TYPES,
   ReviewWithPrompt,
 } from "../../types/aiResponse.js";
@@ -13,24 +13,28 @@ import {
   preparePatchForReview,
 } from "../../utils/prepareCodeForReview.js";
 import { getSchema } from "../../utils/responseSchemas/getSchema.js";
-import { codeReviewPrompt } from "./prompt.js";
+import { createCodeReviewPrompt } from "./prompt.js";
 import { askOpenRouterWithValidation } from "./retryWithValidation.js";
 import { validateFeedbackPoints } from "../../validation/validateFeedbackPoints.js";
 import { removeAdditionalLineNumbersAndSymbols } from "../../validation/removeAdditionalLineNumbersAndSymbols.js";
 
 const openRouter = new OpenRouter({ apiKey: env.OPENROUTER_API_KEY });
 const FULL_FILE_PREVIEW_LINES = 5;
+const aiResponseSchema = createAiResponseSchema(env.AI_MAX_FEEDBACK_POINTS);
+export const codeReviewPrompt = createCodeReviewPrompt(
+  env.AI_MAX_FEEDBACK_POINTS,
+);
 export const MODEL = env.AI_MODEL;
 export const defaultChatParameters: Partial<ChatGenerationParams> = {
   temperature: 0,
   model: MODEL,
   // The provider supports "max", but this SDK version's Effort type lags behind.
   reasoning: { effort: env.AI_REASONING_EFFORT as Effort },
-  // One response now covers every category, with room for five findings and reasoning.
+  // One response covers every category, with room for findings and reasoning.
   maxCompletionTokens: env.AI_MAX_COMPLETION_TOKENS,
   responseFormat: {
     type: "json_schema",
-    jsonSchema: getSchema,
+    jsonSchema: getSchema(aiResponseSchema),
   },
 };
 
@@ -80,7 +84,7 @@ export async function aiCall(
 }
 
 export function validateAiResponse(response: string): AiResponse {
-  return AiResponseSchema.parse(JSON.parse(response));
+  return aiResponseSchema.parse(JSON.parse(response));
 }
 
 function logReviewInput(files: PRFileWithContent[]) {

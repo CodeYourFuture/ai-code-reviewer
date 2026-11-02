@@ -1,7 +1,9 @@
 import { beforeEach, expect, test, vi } from "vitest";
 import pool from "./db.js";
 import { getOrCreatePromptId } from "./storeReview.js";
-import { codeReviewPrompt } from "../networks/ai/prompt.js";
+import { createCodeReviewPrompt } from "../networks/ai/prompt.js";
+
+const codeReviewPrompt = createCodeReviewPrompt(5);
 
 vi.mock("./db.js", () => ({ default: { query: vi.fn() } }));
 

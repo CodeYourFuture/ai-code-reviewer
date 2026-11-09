@@ -11,6 +11,8 @@ interface FeedbackPointData {
   commit_sha: string;
   llm_model?: string;
   prompt_id?: number;
+  repo_full_name: string;
+  pull_request_number: number;
 }
 
 export const getOrCreatePromptId = async (prompt: string): Promise<number> => {
@@ -32,7 +34,7 @@ export const getOrCreatePromptId = async (prompt: string): Promise<number> => {
 export const addFeedbackPoint = async (
   data: FeedbackPointData,
 ): Promise<number> => {
-  const query = `INSERT INTO ai_feedback_points (feedback_type, file_name, review_topic, point, line_number, severity, commit_sha, llm_model, prompt_id) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id`;
+  const query = `INSERT INTO ai_feedback_points (feedback_type, file_name, review_topic, point, line_number, severity, commit_sha, llm_model, prompt_id, repo_full_name, pull_request_number) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING id`;
 
   const values = [
     data.feedback_type,
@@ -44,6 +46,8 @@ export const addFeedbackPoint = async (
     data.commit_sha,
     data.llm_model || null,
     data.prompt_id || null,
+    data.repo_full_name,
+    data.pull_request_number,
   ];
 
   try {
@@ -60,6 +64,7 @@ export const storeReview = async (
   review: ReviewWithPrompt[],
   model: string,
   commit_sha: string,
+  context: { repoFullName: string; pullRequestNumber: number },
 ): Promise<AiResponseWithId[]> => {
   const feedbackWithId: AiResponseWithId[] = [];
 
@@ -81,6 +86,8 @@ export const storeReview = async (
         commit_sha,
         llm_model: model,
         prompt_id,
+        repo_full_name: context.repoFullName,
+        pull_request_number: context.pullRequestNumber,
       };
 
       const feedbackPointId = await addFeedbackPoint(feedbackPointData);

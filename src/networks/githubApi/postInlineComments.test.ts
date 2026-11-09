@@ -1,6 +1,9 @@
 import { expect, test, vi } from "vitest";
 import { formReviewParams, postInlineComments } from "./postInlineComment.js";
 import type { Octokit } from "octokit";
+import { storeGithubComment } from "../../db/storeGithubComment.js";
+
+vi.mock("../../db/storeGithubComment.js", () => ({ storeGithubComment: vi.fn() }));
 
 // These formatting tests do not need deployment credentials or a local .env.
 vi.mock("../../config/env.js", () => ({
@@ -15,7 +18,9 @@ test("return line when one number passed", () => {
 });
 
 test("posts five comment findings inline without replacing them with a generic review", async () => {
-  const request = vi.fn().mockResolvedValue({});
+  const request = vi.fn()
+    .mockResolvedValueOnce({ data: { id: 99 } })
+    .mockResolvedValueOnce({ data: [] });
   await postInlineComments("owner", "repo", 42, { request } as unknown as Octokit, [{
     feedback_type: "comments quality",
     feedback_points: Array.from({ length: 5 }, (_, index) => ({
@@ -26,13 +31,64 @@ test("posts five comment findings inline without replacing them with a generic r
       point_id: index + 1,
     })),
   }], "commit");
-  expect(request).toHaveBeenCalledTimes(1);
+  expect(request).toHaveBeenCalledTimes(2);
   const params = request.mock.calls[0][1];
   expect(params.comments).toHaveLength(5);
   expect(params.comments[0].body).toContain("Specific finding 0");
   expect(params.body).toBeUndefined();
 });
 
-test.todo("Function sends post request with the right params");
-test.todo("Function throws error when passing incorrect params");
-test.todo("throws error if github return error");
+const review = [{
+  feedback_type: "code quality" as const,
+  feedback_points: [1, 2].map((id) => ({
+    point_id: id, file_name: "game.js", point: `Finding ${id}`,
+    line_numbers: [String(id)], severity: 3,
+  })),
+}];
+
+test("matches returned comments to findings by their bodies, not their order", async () => {
+  vi.mocked(storeGithubComment).mockClear();
+  const request = vi.fn().mockImplementation(async (route, params) => {
+    if (route.startsWith("POST")) return { data: { id: 99 } };
+    expect(params).toMatchObject({ review_id: 99, page: 1, per_page: 100 });
+    const comments = request.mock.calls[0][1].comments;
+    return { data: [
+      { id: 102, html_url: "https://github.com/comment/102", body: comments[1].body },
+      { id: 103, html_url: "https://github.com/comment/103", body: "Unrelated comment" },
+      { id: 101, html_url: "https://github.com/comment/101", body: comments[0].body },
+    ] };
+  });
+  await postInlineComments("owner", "repo", 42, { request } as unknown as Octokit, review, "commit");
+  expect(storeGithubComment).toHaveBeenCalledTimes(2);
+  expect(storeGithubComment).toHaveBeenNthCalledWith(1, 2, 102, "https://github.com/comment/102");
+  expect(storeGithubComment).toHaveBeenNthCalledWith(2, 1, 101, "https://github.com/comment/101");
+});
+
+test("keeps a posted review successful when the lookup fails, without reposting", async () => {
+  vi.mocked(storeGithubComment).mockClear();
+  const request = vi.fn()
+    .mockResolvedValueOnce({ data: { id: 99 } })
+    .mockRejectedValueOnce(new Error("GitHub unavailable"));
+  await expect(postInlineComments("owner", "repo", 42, { request } as unknown as Octokit, review, "commit")).resolves.toBeUndefined();
+  expect(request).toHaveBeenCalledTimes(2);
+  expect(storeGithubComment).not.toHaveBeenCalled();
+});
+
+test("continues saving other comments when one metadata update fails", async () => {
+  vi.mocked(storeGithubComment).mockClear();
+  vi.mocked(storeGithubComment).mockRejectedValueOnce(new Error("Database unavailable"));
+  const request = vi.fn().mockImplementation(async (route) => {
+    if (route.startsWith("POST")) return { data: { id: 99 } };
+    return { data: request.mock.calls[0][1].comments.map((comment: { body: string }, i: number) => ({
+      id: 101 + i, html_url: `https://github.com/comment/${101 + i}`, body: comment.body,
+    })) };
+  });
+  await expect(postInlineComments("owner", "repo", 42, { request } as unknown as Octokit, review, "commit")).resolves.toBeUndefined();
+  expect(storeGithubComment).toHaveBeenCalledTimes(2);
+});
+
+test("still rejects when posting the review itself fails", async () => {
+  const request = vi.fn().mockRejectedValue(new Error("Posting failed"));
+  await expect(postInlineComments("owner", "repo", 42, { request } as unknown as Octokit, review, "commit")).rejects.toThrow("Posting failed");
+  expect(request).toHaveBeenCalledTimes(1);
+});

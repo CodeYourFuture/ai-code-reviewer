@@ -9,6 +9,7 @@ test("adds timestamps without assigning migration time to historical rows", asyn
   const sql = builder.getSql();
   for (const table of ["ai_feedback_points", "users_feedback"]) {
     const addStatement = builder.getSqlSteps().find((step) => step.startsWith(`ALTER TABLE "${table}"`) && step.includes('ADD "created_at"'));
+    expect(addStatement).toBeDefined();
     expect(addStatement).toContain('ADD "created_at" timestamptz;');
     expect(addStatement).not.toContain("DEFAULT");
     expect(sql).toContain(`ALTER TABLE "${table}"\n  ALTER "created_at" SET DEFAULT now();`);

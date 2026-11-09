@@ -1,9 +1,10 @@
-import { expect, test, vi } from "vitest";
+import { afterEach, expect, test, vi } from "vitest";
 import { formReviewParams, postInlineComments } from "./postInlineComment.js";
 import type { Octokit } from "octokit";
 import { storeGithubComment } from "../../db/storeGithubComment.js";
 
 vi.mock("../../db/storeGithubComment.js", () => ({ storeGithubComment: vi.fn() }));
+afterEach(() => vi.restoreAllMocks());
 
 // These formatting tests do not need deployment credentials or a local .env.
 vi.mock("../../config/env.js", () => ({
@@ -65,6 +66,7 @@ test("matches returned comments to findings by their bodies, not their order", a
 });
 
 test("keeps a posted review successful when the lookup fails, without reposting", async () => {
+  const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
   vi.mocked(storeGithubComment).mockClear();
   const request = vi.fn()
     .mockResolvedValueOnce({ data: { id: 99 } })
@@ -72,9 +74,11 @@ test("keeps a posted review successful when the lookup fails, without reposting"
   await expect(postInlineComments("owner", "repo", 42, { request } as unknown as Octokit, review, "commit")).resolves.toBeUndefined();
   expect(request).toHaveBeenCalledTimes(2);
   expect(storeGithubComment).not.toHaveBeenCalled();
+  expect(warn).toHaveBeenCalledWith(expect.stringContaining("could not retrieve"), expect.any(Error));
 });
 
 test("continues saving other comments when one metadata update fails", async () => {
+  const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
   vi.mocked(storeGithubComment).mockClear();
   vi.mocked(storeGithubComment).mockRejectedValueOnce(new Error("Database unavailable"));
   const request = vi.fn().mockImplementation(async (route) => {
@@ -85,6 +89,23 @@ test("continues saving other comments when one metadata update fails", async () 
   });
   await expect(postInlineComments("owner", "repo", 42, { request } as unknown as Octokit, review, "commit")).resolves.toBeUndefined();
   expect(storeGithubComment).toHaveBeenCalledTimes(2);
+  expect(warn).toHaveBeenCalledWith(expect.stringContaining("Could not save"), expect.any(Error));
+});
+
+test("matches comments despite surrounding whitespace and different line endings", async () => {
+  vi.mocked(storeGithubComment).mockClear();
+  const request = vi.fn().mockImplementation(async (route) => {
+    if (route.startsWith("POST")) return { data: { id: 99 } };
+    const comments = request.mock.calls[0][1].comments;
+    return { data: [
+      { id: 101, html_url: "https://github.com/comment/101", body: comments[0].body.trim().replace(/\r\n?/g, "\n") },
+      { id: 102, html_url: "https://github.com/comment/102", body: `\r\n ${comments[1].body.trim().replace(/\r?\n/g, "\r\n")} \r\n` },
+    ] };
+  });
+  await postInlineComments("owner", "repo", 42, { request } as unknown as Octokit, review, "commit");
+  expect(storeGithubComment).toHaveBeenCalledTimes(2);
+  expect(storeGithubComment).toHaveBeenNthCalledWith(1, 1, 101, "https://github.com/comment/101");
+  expect(storeGithubComment).toHaveBeenNthCalledWith(2, 2, 102, "https://github.com/comment/102");
 });
 
 test("still rejects when posting the review itself fails", async () => {

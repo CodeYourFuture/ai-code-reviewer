@@ -27,10 +27,10 @@ test("persists repository and PR context with each finding", async () => {
   vi.mocked(pool.query).mockResolvedValue({ rows: [{ id: 12 }] } as never);
   const result = await storeReview([{
     prompt: "Review instructions", feedback_type: "code quality",
-    feedback_points: [{ file_name: "index.js", point: "A finding", line_numbers: ["3-5"], severity: 4 }],
+    feedback_points: [{ file_name: "index.js", topic: "Correctness", point: "A finding", line_numbers: ["3-5"], severity: 4 }],
   }], "test-model", "commit-sha", { repoFullName: "owner/repo", pullRequestNumber: 42 });
   const [sql, values] = vi.mocked(pool.query).mock.calls[1];
   expect(sql).toContain("repo_full_name, pull_request_number");
-  expect(values).toEqual(["code quality", "index.js", undefined, "A finding", "3-5", 4, "commit-sha", "test-model", 12, "owner/repo", 42]);
+  expect(values).toEqual(["code quality", "index.js", "Correctness", "A finding", "3-5", 4, "commit-sha", "test-model", 12, "owner/repo", 42]);
   expect(result[0].feedback_points[0].point_id).toBe(12);
 });

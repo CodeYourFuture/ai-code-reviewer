@@ -4,6 +4,10 @@ import type { CreateReviewComment } from "../../types/githubTypes.js";
 import { buildReviewCommentsArray } from "../../utils/commentsToList.js";
 import { storeGithubComment } from "../../db/storeGithubComment.js";
 
+function normalizeCommentBody(body: string): string {
+  return body.replace(/\r\n?/g, "\n").trim();
+}
+
 export async function postInlineComments(
   owner: string,
   repo: string,
@@ -19,7 +23,7 @@ export async function postInlineComments(
     reviewType.feedback_points.flatMap((point) => {
       const pointComments = buildReviewCommentsArray([point]);
       for (const comment of pointComments) {
-        pointIdsByBody.set(comment.body, point.point_id);
+        pointIdsByBody.set(normalizeCommentBody(comment.body), point.point_id);
       }
       return pointComments;
     }),
@@ -48,7 +52,7 @@ export async function postInlineComments(
           },
         );
         for (const comment of data) {
-          const pointId = pointIdsByBody.get(comment.body);
+          const pointId = pointIdsByBody.get(normalizeCommentBody(comment.body));
           if (pointId === undefined) continue;
           try {
             await storeGithubComment(pointId, comment.id, comment.html_url);

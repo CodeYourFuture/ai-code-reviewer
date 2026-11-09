@@ -70,8 +70,9 @@ export async function handleLabeled(
         aiReview,
         MODEL,
         commitId,
+        { repoFullName: `${owner}/${repo}`, pullRequestNumber: pullNumber },
       );
-      sendOutComments(
+      await sendOutComments(
         aiReviewWithId,
         owner,
         repo,

@@ -4,8 +4,10 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { handleLabeled } from "./handleLabeled.js";
 import { runAiReview } from "./networks/ai/ai_api_request.js";
 import { getPRFiles } from "./networks/githubApi/github.js";
-import { postInlineComments } from "./networks/githubApi/postInlineComment.js";
 import { postPRComment } from "./networks/githubApi/postPrComment.js";
+import { storeReview } from "./db/storeReview.js";
+import { sendOutComments } from "./utils/sendOutComments.js";
+import { addLabelToPR, removeLabelFromPR } from "./networks/githubApi/handleLabels.js";
 import { haveCommentedAlready } from "./networks/githubApi/haveCommentedAlready.js";
 import { env } from "./config/env.js";
 
@@ -41,12 +43,18 @@ vi.mock("./config/env.js", () => ({
 }));
 
 vi.mock(import("./networks/githubApi/github.js"), { spy: true });
-vi.mock(import("./networks/ai/ai_api_request.js"), { spy: true });
-vi.mock(import("./networks/githubApi/haveCommentedAlready.js"), { spy: true });
-vi.mock("./networks/postInlineComment.js", () => ({
-  postInlineComments: vi.fn(),
+vi.mock("./networks/ai/ai_api_request.js", () => ({ MODEL: "test-model", runAiReview: vi.fn() }));
+vi.mock("./networks/githubApi/handleLabels.js", () => ({
+  addLabelToPR: vi.fn(), removeLabelFromPR: vi.fn(),
 }));
-vi.mock("./networks/postPrComment.js", () => ({
+vi.mock(import("./networks/githubApi/haveCommentedAlready.js"), { spy: true });
+vi.mock("./db/storeReview.js", () => ({
+  storeReview: vi.fn().mockResolvedValue([]),
+}));
+vi.mock("./utils/sendOutComments.js", () => ({
+  sendOutComments: vi.fn().mockResolvedValue(undefined),
+}));
+vi.mock("./networks/githubApi/postPrComment.js", () => ({
   postPRComment: vi.fn(),
 }));
 
@@ -72,6 +80,25 @@ describe("handleLabeled", () => {
       "abc123",
     );
     expect(runAiReview).toHaveBeenCalled();
+    expect(storeReview).toHaveBeenCalledWith([], expect.anything(), "abc123", {
+      repoFullName: "octocat/hello-world", pullRequestNumber: 42,
+    });
+  });
+
+  it("waits for comments before marking the PR reviewed", async () => {
+    let finishPosting!: () => void;
+    vi.mocked(sendOutComments).mockReturnValueOnce(new Promise<void>((resolve) => {
+      finishPosting = resolve;
+    }));
+    const event = makeEvent("needs review");
+    const workflow = handleLabeled(event);
+    await vi.waitFor(() => expect(sendOutComments).toHaveBeenCalled());
+    expect(removeLabelFromPR).not.toHaveBeenCalled();
+    expect(addLabelToPR).not.toHaveBeenCalled();
+    finishPosting();
+    await workflow;
+    expect(addLabelToPR).toHaveBeenCalledWith(event.octokit, "octocat", "hello-world", 42, "Reviewed");
+    expect(postPRComment).toHaveBeenCalled();
   });
 
   it("does not review PRs triggered by a user outside the development allowlist", async () => {

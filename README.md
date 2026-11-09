@@ -237,6 +237,12 @@ Migrations create the application tables in the database initialized by PostgreS
 
 Run pending migrations before starting updated application code. Prompt deduplication uses a unique index on `md5(prompt)` so long prompts can be stored without exceeding PostgreSQL's B-tree key-size limit. The full text is retained, and the application checks text equality before reusing an ID. Rolling back the hash-index migration can fail once long prompts have been stored, because it restores the original full-text unique constraint; a failed rollback leaves the data intact.
 
+### Feedback history and GitHub links
+
+New findings store `repo_full_name` and `pull_request_number`. After posting a review, the backend looks up its individual comments and saves `github_comment_id` and `github_comment_url`. Lookup and metadata-save failures are logged and leave those fields empty; they do not fail the posted review or cause it to be reposted. Comments are matched using their bodies, which contain the finding's unique rating link.
+
+Both `ai_feedback_points` and `users_feedback` have a database-generated `created_at` (`timestamptz`) for new rows. Existing rows retain `NULL` because their original creation times are unknown. Run the feedback-context migration before deploying the updated backend.
+
 **Start the backend in watch mode:**
 
 ```bash

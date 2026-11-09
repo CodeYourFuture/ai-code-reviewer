@@ -14,9 +14,25 @@ describe("code review prompt", () => {
 
     expect(prompt).toContain("professional, conversational, warm, and direct");
     expect(prompt).toContain("normally one or two short sentences");
-    expect(prompt).toContain("prefer a focused leading question");
-    expect(prompt).toContain("end the finding with the question");
-    expect(prompt).toContain("Do not answer it in the same finding");
+    expect(prompt).toContain("Use a focused discovery question by default");
+    expect(prompt).toContain(
+      "Do not choose direct explanation merely because you already know the diagnosis",
+    );
+    expect(prompt).toContain(
+      "When several findings are suitable for discovery questions, use questions for most of them",
+    );
+    expect(prompt).toContain("end the finding there");
+    expect(prompt).toContain("Do not answer the question");
+    expect(prompt).toContain(
+      "Use direct explanation only when a discovery question would remain vague",
+    );
+    expect(prompt).toContain(
+      "Do not append a question merely to make direct feedback sound instructional",
+    );
+    expect(prompt).toContain('never use the pattern "Question? Answer."');
+    expect(prompt).toContain(
+      "If any sentence answers the question or gives away the conclusion",
+    );
     expect(prompt).toContain("A request phrased as a question is still a suggestion");
     expect(prompt).toContain("Give the smallest clue");
     expect(prompt).toContain("Do not turn feedback into a guessing game");

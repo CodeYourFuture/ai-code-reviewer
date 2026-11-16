@@ -6,7 +6,9 @@ import { runAiReview } from "./networks/ai/ai_api_request.js";
 import { getPRFiles } from "./networks/githubApi/github.js";
 import { postPRComment } from "./networks/githubApi/postPrComment.js";
 import { storeReview } from "./db/storeReview.js";
-import { sendOutComments } from "./utils/sendOutComments.js";
+import { messageWhenNoFeedback } from "./utils/sendOutComments.js";
+import { postInlineComments } from "./networks/githubApi/postInlineComment.js";
+import type { AiResponseWithId } from "./types/aiResponse.js";
 import { addLabelToPR, removeLabelFromPR } from "./networks/githubApi/handleLabels.js";
 import { haveCommentedAlready } from "./networks/githubApi/haveCommentedAlready.js";
 import { env } from "./config/env.js";
@@ -19,7 +21,7 @@ function makeEvent(labelName: string, sha = "abc123") {
         owner: { login: "octocat" },
         name: "hello-world",
       },
-      sender: { login: "Droid-An" },
+      sender: { login: "Droid-An", type: "User" },
       pull_request: {
         number: 42,
         head: { sha },
@@ -51,18 +53,27 @@ vi.mock(import("./networks/githubApi/haveCommentedAlready.js"), { spy: true });
 vi.mock("./db/storeReview.js", () => ({
   storeReview: vi.fn().mockResolvedValue([]),
 }));
-vi.mock("./utils/sendOutComments.js", () => ({
-  sendOutComments: vi.fn().mockResolvedValue(undefined),
+vi.mock("./networks/githubApi/postInlineComment.js", () => ({
+  postInlineComments: vi.fn(),
 }));
 vi.mock("./networks/githubApi/postPrComment.js", () => ({
   postPRComment: vi.fn(),
 }));
+
+const reviewWithFeedback: AiResponseWithId[] = [{
+  feedback_type: "code quality",
+  feedback_points: [{
+    file_name: "index.js", point: "Check this value", line_numbers: ["12"],
+    severity: 4, point_id: 1,
+  }],
+}];
 
 describe("handleLabeled", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.mocked(getPRFiles).mockResolvedValue([]);
     vi.mocked(runAiReview).mockResolvedValue([]);
+    vi.mocked(storeReview).mockResolvedValue([]);
     vi.mocked(haveCommentedAlready).mockResolvedValue(false);
     (env as { MULTIPLE_REVIEWS_ALLOWED: boolean }).MULTIPLE_REVIEWS_ALLOWED = true;
   });
@@ -87,18 +98,111 @@ describe("handleLabeled", () => {
 
   it("waits for comments before marking the PR reviewed", async () => {
     let finishPosting!: () => void;
-    vi.mocked(sendOutComments).mockReturnValueOnce(new Promise<void>((resolve) => {
+    vi.mocked(storeReview).mockResolvedValue(reviewWithFeedback);
+    vi.mocked(postInlineComments).mockReturnValueOnce(new Promise<void>((resolve) => {
       finishPosting = resolve;
     }));
     const event = makeEvent("needs review");
     const workflow = handleLabeled(event);
-    await vi.waitFor(() => expect(sendOutComments).toHaveBeenCalled());
+    await vi.waitFor(() => expect(postInlineComments).toHaveBeenCalled());
     expect(removeLabelFromPR).not.toHaveBeenCalled();
     expect(addLabelToPR).not.toHaveBeenCalled();
     finishPosting();
     await workflow;
     expect(addLabelToPR).toHaveBeenCalledWith(event.octokit, "octocat", "hello-world", 42, "Reviewed");
     expect(postPRComment).toHaveBeenCalled();
+  });
+
+  describe.each([true, false])("multiple reviews allowed: %s", (multipleReviewsAllowed) => {
+    beforeEach(() => {
+      (env as { MULTIPLE_REVIEWS_ALLOWED: boolean }).MULTIPLE_REVIEWS_ALLOWED = multipleReviewsAllowed;
+    });
+
+    it.each([
+      { name: "an empty review", review: [] },
+      { name: "empty feedback groups", review: [
+        { feedback_type: "code quality", feedback_points: [] },
+        { feedback_type: "comments quality", feedback_points: [] },
+      ] },
+    ] satisfies { name: string; review: AiResponseWithId[] }[])(
+      "keeps $name available for volunteer review", async ({ review }) => {
+        vi.mocked(storeReview).mockResolvedValue(review);
+        const event = makeEvent("Needs Review");
+
+        await handleLabeled(event);
+
+        expect(postInlineComments).not.toHaveBeenCalled();
+        expect(postPRComment).toHaveBeenCalledExactlyOnceWith({
+          owner: "octocat", repo: "hello-world", pullNumber: 42,
+          octokit: event.octokit, body: messageWhenNoFeedback,
+        });
+        expect(addLabelToPR).toHaveBeenCalledExactlyOnceWith(
+          event.octokit, "octocat", "hello-world", 42, "Needs Review",
+        );
+        expect(removeLabelFromPR).toHaveBeenCalledExactlyOnceWith(
+          event.octokit, "octocat", "hello-world", 42, "Reviewed",
+        );
+      },
+    );
+
+    it("marks findings reviewed and posts the appropriate follow-up", async () => {
+      vi.mocked(storeReview).mockResolvedValue(reviewWithFeedback);
+      const event = makeEvent("Needs Review");
+
+      await handleLabeled(event);
+
+      expect(postInlineComments).toHaveBeenCalledExactlyOnceWith(
+        "octocat", "hello-world", 42, event.octokit, reviewWithFeedback, "abc123",
+      );
+      expect(addLabelToPR).toHaveBeenCalledExactlyOnceWith(
+        event.octokit, "octocat", "hello-world", 42, "Reviewed",
+      );
+      expect(removeLabelFromPR).toHaveBeenCalledExactlyOnceWith(
+        event.octokit, "octocat", "hello-world", 42, "Needs Review",
+      );
+      expect(postPRComment).toHaveBeenCalledExactlyOnceWith({
+        owner: "octocat", repo: "hello-world", pullNumber: 42,
+        octokit: event.octokit,
+        body: multipleReviewsAllowed
+          ? "The CYF AI review has left comments. When you have addressed these comments, you can request another AI review or ask a volunteer to take a look."
+          : "The CYF AI review has left comments. It will only review a PR one time. When you have addressed these comments, please request review again and a volunteer will take a look.",
+      });
+    });
+
+    it("ignores bot-generated Needs Review label events", async () => {
+      const event = makeEvent("Needs Review");
+      event.payload.sender.type = "Bot";
+
+      await handleLabeled(event);
+
+      expect(haveCommentedAlready).not.toHaveBeenCalled();
+      expect(runAiReview).not.toHaveBeenCalled();
+      expect(postPRComment).not.toHaveBeenCalled();
+      expect(addLabelToPR).not.toHaveBeenCalled();
+      expect(removeLabelFromPR).not.toHaveBeenCalled();
+    });
+  });
+
+  it.each([true, false])("does not change labels when posting fails (has feedback: %s)", async (hasFeedback) => {
+    const error = new Error("GitHub unavailable");
+    const logError = vi.spyOn(console, "error").mockImplementation(() => {});
+    vi.mocked(storeReview).mockResolvedValue(hasFeedback ? reviewWithFeedback : []);
+    if (hasFeedback) {
+      vi.mocked(postInlineComments).mockRejectedValueOnce(error);
+    } else {
+      vi.mocked(postPRComment).mockRejectedValueOnce(error);
+    }
+
+    try {
+      await handleLabeled(makeEvent("Needs Review"));
+
+      expect(addLabelToPR).not.toHaveBeenCalled();
+      expect(removeLabelFromPR).not.toHaveBeenCalled();
+      expect(postPRComment).toHaveBeenCalledTimes(hasFeedback ? 0 : 1);
+      expect(logError).toHaveBeenCalledWith(error);
+    } finally {
+      logError.mockRestore();
+    }
   });
 
   it("does not review PRs triggered by a user outside the development allowlist", async () => {

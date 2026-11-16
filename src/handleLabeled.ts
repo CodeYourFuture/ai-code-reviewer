@@ -72,7 +72,7 @@ export async function handleLabeled(
         commitId,
         { repoFullName: `${owner}/${repo}`, pullRequestNumber: pullNumber },
       );
-      await sendOutComments(
+      const outcome = await sendOutComments(
         aiReviewWithId,
         owner,
         repo,
@@ -80,6 +80,11 @@ export async function handleLabeled(
         octokit,
         commitId,
       );
+      if (outcome === "no-feedback") {
+        await addLabelToPR(octokit, owner, repo, pullNumber, "Needs Review");
+        await removeLabelFromPR(octokit, owner, repo, pullNumber, "Reviewed");
+        return;
+      }
       await removeLabelFromPR(octokit, owner, repo, pullNumber, "Needs Review");
       await addLabelToPR(octokit, owner, repo, pullNumber, "Reviewed");
       await postPRComment({

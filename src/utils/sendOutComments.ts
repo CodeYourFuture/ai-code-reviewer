@@ -13,7 +13,7 @@ export async function sendOutComments(
   pullNumber: number,
   octokit: Octokit,
   commitId: string,
-) {
+): Promise<"feedback-posted" | "no-feedback"> {
   if (aiReviewWithId.some((response) => response.feedback_points.length > 0)) {
     await postInlineComments(
       owner,
@@ -23,6 +23,7 @@ export async function sendOutComments(
       aiReviewWithId,
       commitId,
     );
+    return "feedback-posted";
   } else {
     await postPRComment({
       owner,
@@ -31,5 +32,6 @@ export async function sendOutComments(
       body: messageWhenNoFeedback,
       octokit,
     });
+    return "no-feedback";
   }
 }

@@ -10,7 +10,7 @@ vi.mock("../networks/githubApi/postPrComment.js", () => ({
 beforeEach(() => {
   vi.clearAllMocks();
 });
-import { sendOutComments } from "./sendOutComments.js";
+import { messageWhenNoFeedback, sendOutComments } from "./sendOutComments.js";
 import { postInlineComments } from "../networks/githubApi/postInlineComment.js";
 import { postPRComment } from "../networks/githubApi/postPrComment.js";
 import type { AiResponseWithId } from "../types/aiResponse.js";
@@ -18,7 +18,7 @@ import type { AiResponseWithId } from "../types/aiResponse.js";
 test("posts PR comment when there is no feedback", async () => {
   const aiReviewWithId: AiResponseWithId[] = [];
 
-  await sendOutComments(
+  const outcome = await sendOutComments(
     aiReviewWithId,
     "owner",
     "repo",
@@ -29,6 +29,8 @@ test("posts PR comment when there is no feedback", async () => {
 
   expect(postInlineComments).not.toHaveBeenCalled();
   expect(postPRComment).toHaveBeenCalledTimes(1);
+  expect(postPRComment).toHaveBeenCalledWith(expect.objectContaining({ body: messageWhenNoFeedback }));
+  expect(outcome).toBe("no-feedback");
 });
 
 test("posts feedback when there is feedback available", async () => {
@@ -47,7 +49,7 @@ test("posts feedback when there is feedback available", async () => {
     },
   ];
 
-  await sendOutComments(
+  const outcome = await sendOutComments(
     aiReviewWithId,
     "owner",
     "repo",
@@ -58,4 +60,5 @@ test("posts feedback when there is feedback available", async () => {
 
   expect(postInlineComments).toHaveBeenCalledTimes(1);
   expect(postPRComment).not.toHaveBeenCalled();
+  expect(outcome).toBe("feedback-posted");
 });

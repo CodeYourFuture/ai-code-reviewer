@@ -4,7 +4,7 @@ import type { AiResponseWithId } from "../types/aiResponse.js";
 import { Octokit } from "octokit";
 
 export const messageWhenNoFeedback =
-  "The CYF AI reviewer had no comments to leave - please wait for a volunteer to review this PR.";
+  "The CYF AI reviewer checked this PR did not find any obvious problems. Please wait for a volunteer to also have a look and offer their own feedback.";
 
 export async function sendOutComments(
   aiReviewWithId: AiResponseWithId[],
